@@ -1,0 +1,8 @@
+/MDK-ARM/*
+!/MDK-ARM/*.uvprojx
+!/MDK-ARM/*.uvoptx
+!/MDK-ARM/*.s
+build
+/cube/*
+!/cube/*.ioc
+/python_test/__pycache__/

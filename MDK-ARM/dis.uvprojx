@@ -314,7 +314,7 @@
           </ArmAdsMisc>
           <Cads>
             <interw>1</interw>
-            <Optim>4</Optim>
+            <Optim>1</Optim>
             <oTime>0</oTime>
             <SplitLS>0</SplitLS>
             <OneElfS>1</OneElfS>
@@ -424,6 +424,16 @@
               <FileType>1</FileType>
               <FilePath>..\code\Src\usart.c</FilePath>
             </File>
+            <File>
+              <FileName>bdma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Src\bdma.c</FilePath>
+            </File>
+            <File>
+              <FileName>tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Src\tim.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -468,6 +478,16 @@
               <FileName>stm32h7xx_ll_utils.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\code\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_utils.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_ll_bdma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_bdma.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32h7xx_ll_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Drivers\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_tim.c</FilePath>
             </File>
           </Files>
         </Group>

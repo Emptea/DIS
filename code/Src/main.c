@@ -118,7 +118,8 @@ int main(void)
   while (1)
   {
     /* USER CODE END WHILE */
-
+//    LL_USART_TransmitData8(USART1, 10);
+//    LL_mDelay(10);
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */

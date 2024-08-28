@@ -20,6 +20,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32h7xx_it.h"
+#include "gpio_ex.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -203,12 +204,22 @@ void SysTick_Handler(void)
   */
 void USART1_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART1_IRQn 0 */
+  /* Check RXNE flag value in ISR register */
+  if(LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1))
+  {
+    __IO uint32_t received_char;
 
-  /* USER CODE END USART1_IRQn 0 */
-  /* USER CODE BEGIN USART1_IRQn 1 */
+    /* Read Received character. RXNE flag is cleared by reading of RDR register */
+    received_char = LL_USART_ReceiveData8(USART1);
+    if (received_char == 0x01){
+        pwr_off();
+    } else if (received_char == 0x02){
+        pwr_on();
+    }
 
-  /* USER CODE END USART1_IRQn 1 */
+    /* Echo received character on TX */
+    LL_USART_TransmitData8(USART1, received_char);
+  }
 }
 
 /**

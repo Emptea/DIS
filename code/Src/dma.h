@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    bdma.h
+  * @file    dma.h
   * @brief   This file contains all the function prototypes for
-  *          the bdma.c file
+  *          the dma.c file
   ******************************************************************************
   * @attention
   *
@@ -18,8 +18,8 @@
   */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __BDMA_H__
-#define __BDMA_H__
+#ifndef __DMA_H__
+#define __DMA_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -38,7 +38,7 @@ extern "C" {
 
 /* USER CODE END Private defines */
 
-void MX_BDMA_Init(void);
+void MX_DMA_Init(void);
 
 /* USER CODE BEGIN Prototypes */
 
@@ -48,5 +48,5 @@ void MX_BDMA_Init(void);
 }
 #endif
 
-#endif /* __BDMA_H__ */
+#endif /* __DMA_H__ */
 

@@ -19,50 +19,38 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
-#include "bdma.h"
+#include "adc_ex.h"
+#include "dma.h"
 #include "memorymap.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "gpio_ex.h"
 
 /* Private includes ----------------------------------------------------------*/
-/* USER CODE BEGIN Includes */
 
-/* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
-/* USER CODE BEGIN PTD */
 
-/* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
-/* USER CODE BEGIN PD */
 
-/* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
-/* USER CODE BEGIN PM */
 
-/* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+int16_t adc_buf[RE_SG_LEN] = {0};
 
-/* USER CODE BEGIN PV */
-
-/* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
-/* USER CODE BEGIN PFP */
 
-/* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
-/* USER CODE BEGIN 0 */
 
-/* USER CODE END 0 */
 
 /**
   * @brief  The application entry point.
@@ -70,11 +58,6 @@ static void MPU_Config(void);
   */
 int main(void)
 {
-
-  /* USER CODE BEGIN 1 */
-
-  /* USER CODE END 1 */
-
   /* MPU Configuration--------------------------------------------------------*/
   MPU_Config();
 
@@ -89,40 +72,26 @@ int main(void)
   /* SysTick_IRQn interrupt configuration */
   NVIC_SetPriority(SysTick_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),15, 0));
 
-  /* USER CODE BEGIN Init */
-
-  /* USER CODE END Init */
-
   /* Configure the system clock */
   SystemClock_Config();
 
   /* Configure the peripherals common clocks */
   PeriphCommonClock_Config();
 
-  /* USER CODE BEGIN SysInit */
-
-  /* USER CODE END SysInit */
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_BDMA_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
   MX_ADC3_Init();
   MX_TIM3_Init();
-  /* USER CODE BEGIN 2 */
-
-  /* USER CODE END 2 */
-
+  
+  adc_dma_config();
   /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
-//    LL_USART_TransmitData8(USART1, 10);
-//    LL_mDelay(10);
-    /* USER CODE BEGIN 3 */
+
   }
-  /* USER CODE END 3 */
 }
 
 /**

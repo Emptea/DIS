@@ -1,7 +1,7 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file    bdma.c
+  * @file    dma.c
   * @brief   This file provides code for the configuration
   *          of all the requested memory to memory DMA transfers.
   ******************************************************************************
@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-#include "bdma.h"
+#include "dma.h"
 
 /* USER CODE BEGIN 0 */
 
@@ -36,17 +36,17 @@
 /**
   * Enable DMA controller clock
   */
-void MX_BDMA_Init(void)
+void MX_DMA_Init(void)
 {
 
   /* Init with LL driver */
   /* DMA controller clock enable */
-  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_BDMA);
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_DMA1);
 
   /* DMA interrupt init */
-  /* BDMA_Channel0_IRQn interrupt configuration */
-  NVIC_SetPriority(BDMA_Channel0_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
-  NVIC_EnableIRQ(BDMA_Channel0_IRQn);
+  /* DMA1_Stream0_IRQn interrupt configuration */
+  NVIC_SetPriority(DMA1_Stream0_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  NVIC_EnableIRQ(DMA1_Stream0_IRQn);
 
 }
 

@@ -222,20 +222,17 @@ void USART1_IRQHandler(void)
   }
 }
 
+
 /**
-  * @brief This function handles BDMA channel0 global interrupt.
+  * @brief This function handles DMA1 stream0 global interrupt.
   */
-void BDMA_Channel0_IRQHandler(void)
+void DMA1_Stream0_IRQHandler(void)
 {
-  /* USER CODE BEGIN BDMA_Channel0_IRQn 0 */
+  /* USER CODE BEGIN DMA1_Stream0_IRQn 0 */
 
-  /* USER CODE END BDMA_Channel0_IRQn 0 */
+  /* USER CODE END DMA1_Stream0_IRQn 0 */
 
-  /* USER CODE BEGIN BDMA_Channel0_IRQn 1 */
+  /* USER CODE BEGIN DMA1_Stream0_IRQn 1 */
 
-  /* USER CODE END BDMA_Channel0_IRQn 1 */
+  /* USER CODE END DMA1_Stream0_IRQn 1 */
 }
-
-/* USER CODE BEGIN 1 */
-
-/* USER CODE END 1 */

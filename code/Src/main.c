@@ -25,6 +25,7 @@
 #include "tim.h"
 #include "tim_ex.h"
 #include "usart.h"
+#include "usart_ex.h"
 #include "gpio.h"
 #include "gpio_ex.h"
 
@@ -41,7 +42,9 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-int16_t adc_buf[RE_SG_LEN] = {0};
+int16_t sg[RE_SG_LEN] = {0};
+int16_t uart_tx_buf[RE_SG_LEN] = {0};
+int16_t uart_rx_buf[RE_SG_LEN] = {0};
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -88,6 +91,8 @@ int main(void)
   MX_TIM3_Init();
 
   adc_dma_config();
+  uart_dma_tx_config();
+
   adc_en();
   adc_start();
   tim_on();

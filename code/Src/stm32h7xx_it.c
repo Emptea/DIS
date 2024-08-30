@@ -23,6 +23,8 @@
 #include "gpio_ex.h"
 #include "usart_ex.h"
 #include "adc_ex.h"
+#include "tim_ex.h"
+#include "protocol.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -208,14 +210,7 @@ void USART1_IRQHandler(void)
 
         /* Read Received character. RXNE flag is cleared by reading of RDR register */
         received_char = LL_USART_ReceiveData8(USART1);
-        if (received_char == 0x01) {
-            pwr_off();
-        } else if (received_char == 0x02) {
-            pwr_on();
-        }
-
-        /* Echo received character on TX */
-        LL_USART_TransmitData8(USART1, received_char);
+        cmd_work(received_char);
     }
 }
 
@@ -226,10 +221,27 @@ void DMA1_Stream0_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
         LL_DMA_ClearFlag_TC0(DMA1);
-        uart_send_array(USART1, (uint8_t *)adc_buf, RE_SG_LEN);
+        tim_off();
+        uart_dma_transmit_sg();
     }
 
     if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
         LL_DMA_ClearFlag_TE0(DMA1);
     }
+}
+
+/**
+ * @brief This function handles DMA1 stream1 global interrupt.
+ */
+void DMA1_Stream1_IRQHandler(void)
+{
+    uart_dma_rx_handler();
+}
+
+/**
+ * @brief This function handles DMA1 stream2 global interrupt.
+ */
+void DMA1_Stream2_IRQHandler(void)
+{
+    uart_dma_tx_handler();
 }

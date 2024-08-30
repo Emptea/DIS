@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_FULL_LL_DRIVER,HSE_VALUE=12000000,HSE_STARTUP_TIMEOUT=100,LSE_STARTUP_TIMEOUT=5000,LSE_VALUE=32768,EXTERNAL_CLOCK_VALUE=12288000,HSI_VALUE=64000000,LSI_VALUE=32000,VDD_VALUE=3300,STM32H743xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\code\Src;..\code\Drivers\STM32H7xx_HAL_Driver\Inc;..\code\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\code\Drivers\CMSIS\Include</IncludePath>
+              <IncludePath>..\code\Src;..\code\Drivers\STM32H7xx_HAL_Driver\Inc;..\code\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\code\Drivers\CMSIS\Include;..\code\Middlewares</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -513,6 +513,16 @@
               <FileName>system_stm32h7xx.c</FileName>
               <FileType>1</FileType>
               <FilePath>../code/Src/system_stm32h7xx.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Middlewares</GroupName>
+          <Files>
+            <File>
+              <FileName>protocol.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\protocol.c</FilePath>
             </File>
           </Files>
         </Group>

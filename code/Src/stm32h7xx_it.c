@@ -200,21 +200,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
- * @brief This function handles USART1 global interrupt.
- */
-void USART1_IRQHandler(void)
-{
-    /* Check RXNE flag value in ISR register */
-    if (LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1)) {
-        __IO uint32_t received_char;
-
-        /* Read Received character. RXNE flag is cleared by reading of RDR register */
-        received_char = LL_USART_ReceiveData8(USART1);
-        cmd_work(received_char);
-    }
-}
-
-/**
  * @brief This function handles DMA1 stream0 global interrupt.
  */
 void DMA1_Stream0_IRQHandler(void)
@@ -244,4 +229,19 @@ void DMA1_Stream1_IRQHandler(void)
 void DMA1_Stream2_IRQHandler(void)
 {
     uart_dma_tx_handler();
+}
+
+/**
+ * @brief This function handles USART1 global interrupt.
+ */
+void USART1_IRQHandler(void)
+{
+    /* Check RXNE flag value in ISR register */
+    if (LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1)) {
+        __IO uint32_t received_char;
+
+        /* Read Received character. RXNE flag is cleared by reading of RDR register */
+        received_char = LL_USART_ReceiveData8(USART1);
+        cmd_work(received_char);
+    }
 }

@@ -10,4 +10,5 @@ extern int16_t adc_buf[RE_SG_LEN];
 void adc_calibration();
 void adc_en();
 void adc_dma_config();
+void adc_start();
 #endif

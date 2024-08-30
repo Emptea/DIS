@@ -21,6 +21,8 @@
 #include "main.h"
 #include "stm32h7xx_it.h"
 #include "gpio_ex.h"
+#include "usart_ex.h"
+#include "adc_ex.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -222,10 +224,12 @@ void USART1_IRQHandler(void)
  */
 void DMA1_Stream0_IRQHandler(void)
 {
-    if (LL_DMA_IsActiveFlag_TC0(DMA2)) {
-        LL_DMA_ClearFlag_TC0(DMA2);
+    if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
+        LL_DMA_ClearFlag_TC0(DMA1);
+        uart_send_array(USART1, (uint8_t *)adc_buf, RE_SG_LEN);
     }
-    
-    if (LL_DMA_IsActiveFlag_TC0(DMA2)) {
-        LL_DMA_ClearFlag_TC0(DMA2);
+
+    if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
+        LL_DMA_ClearFlag_TE0(DMA1);
     }
+}

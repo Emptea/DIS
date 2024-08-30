@@ -23,6 +23,7 @@
 #include "dma.h"
 #include "memorymap.h"
 #include "tim.h"
+#include "tim_ex.h"
 #include "usart.h"
 #include "gpio.h"
 #include "gpio_ex.h"
@@ -85,12 +86,14 @@ int main(void)
   MX_USART1_UART_Init();
   MX_ADC3_Init();
   MX_TIM3_Init();
-  
+
   adc_dma_config();
+  adc_en();
+  adc_start();
+  tim_on();
   /* Infinite loop */
   while (1)
   {
-
   }
 }
 

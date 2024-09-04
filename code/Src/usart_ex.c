@@ -1,5 +1,20 @@
 #include "usart_ex.h"
 
+enum usart_status {
+    USART_RCV,
+    USART_ERROR,
+} usart_status = USART_RCV;
+
+void uart_send_str(USART_TypeDef *USARTx, uint8_t *str)
+{
+    while (*str != 0) {
+        while (!LL_USART_IsActiveFlag_TXE(USART3)) {
+            ;
+        }
+        LL_USART_TransmitData8(USARTx, *str++);
+    }
+}
+
 void uart_send_array(USART_TypeDef *USARTx, uint8_t *debug_buf, uint32_t length)
 {
     do {
@@ -21,12 +36,14 @@ void uart_dma_rx_config()
         LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_RECEIVE),
         (uint32_t)&uart_rx_buf,
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_1));
-    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, 2*RE_SG_LEN);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, CMD_LEN);
 
     LL_DMA_ClearFlag_TE1(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_1);
     LL_DMA_ClearFlag_TC1(DMA1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_1);
+
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
 }
 
 void uart_dma_tx_config()
@@ -38,7 +55,7 @@ void uart_dma_tx_config()
         (uint32_t)&uart_tx_buf,
         LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_TRANSMIT),
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_2));
-    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, 2*RE_SG_LEN);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, 2 * RE_SG_LEN);
 
     LL_DMA_ClearFlag_TE2(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_2);
@@ -46,10 +63,16 @@ void uart_dma_tx_config()
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_2);
 }
 
+void uart_timeout_config()
+{
+    LL_USART_SetRxTimeout(USART1, USART_TO_VAL);
+    LL_USART_EnableRxTimeout(USART1);
+    LL_USART_EnableIT_RTO(USART1);
+}
+
 void uart_dma_transmit_sg()
 {
     LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_2, (uint32_t)&sg);
-    //LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, RE_SG_LEN);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
 }
 
@@ -64,13 +87,41 @@ void uart_dma_tx_handler()
     }
 }
 
+void uart_recv_dma_callback()
+{
+    switch (usart_status) {
+    case USART_ERROR: {
+        break;
+    }
+    case USART_RCV: {  
+        cmd_work(uart_rx_buf);
+        break;
+    }
+    }
+    usart_status = USART_RCV;
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+    LL_USART_EnableRxTimeout(USART1);
+}
+
 void uart_dma_rx_handler()
 {
     if (LL_DMA_IsActiveFlag_TC1(DMA1)) {
+        LL_USART_DisableRxTimeout(USART1);
         LL_DMA_ClearFlag_TC1(DMA1);
+        uart_recv_dma_callback();
     }
 
     if (LL_DMA_IsActiveFlag_TE1(DMA1)) {
         LL_DMA_ClearFlag_TE1(DMA1);
+    }
+}
+
+void USART1_IRQHandler(void)
+{
+    /* Check RXNE flag value in ISR register */
+    if (LL_USART_IsActiveFlag_RTO(USART1) && LL_USART_IsEnabledIT_RTO(USART1)) {
+        LL_USART_ClearFlag_RTO(USART1);
+        LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+        usart_status = USART_ERROR;
     }
 }

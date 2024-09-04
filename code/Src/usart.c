@@ -127,10 +127,7 @@ void MX_USART1_UART_Init(void)
   while((!(LL_USART_IsActiveFlag_TEACK(USART1))) || (!(LL_USART_IsActiveFlag_REACK(USART1))))
   {
   }
-  /* USER CODE BEGIN USART1_Init 2 */
-  LL_USART_EnableIT_RXNE(USART1);
-  LL_USART_EnableIT_ERROR(USART1);
-  /* USER CODE END USART1_Init 2 */
+
 
 }
 

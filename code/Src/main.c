@@ -43,8 +43,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 int16_t sg[RE_SG_LEN] = {0};
-int16_t uart_tx_buf[RE_SG_LEN] = {0};
-int16_t uart_rx_buf[RE_SG_LEN] = {0};
+uint8_t uart_tx_buf[RE_SG_LEN] = {0};
+uint8_t uart_rx_buf[CMD_LEN] = {0};
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -90,10 +90,14 @@ int main(void)
   MX_ADC3_Init();
   MX_TIM3_Init();
 
+  uart_timeout_config();
+  
   adc_dma_config();
   uart_dma_tx_config();
+  uart_dma_rx_config();
 
   adc_en();
+  adc_calibration();
   adc_start();
   tim_on();
   /* Infinite loop */

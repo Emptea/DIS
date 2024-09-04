@@ -19,7 +19,7 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "adc.h"
-
+#include "adc_ex.h"
 /* USER CODE BEGIN 0 */
 
 /* USER CODE END 0 */
@@ -74,8 +74,9 @@ void MX_ADC3_Init(void)
 
   /** Common config
   */
+  LL_ADC_SetBoostMode(ADC3, LL_ADC_BOOST_MODE_50MHZ);
   LL_ADC_SetOverSamplingScope(ADC3, LL_ADC_OVS_DISABLE);
-  ADC_InitStruct.Resolution = LL_ADC_RESOLUTION_16B;
+  ADC_InitStruct.Resolution = ADC_RES;
   ADC_InitStruct.LowPowerMode = LL_ADC_LP_MODE_NONE;
   LL_ADC_Init(ADC3, &ADC_InitStruct);
   ADC_REG_InitStruct.TriggerSource = LL_ADC_REG_TRIG_EXT_TIM3_TRGO;

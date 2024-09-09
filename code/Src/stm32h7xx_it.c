@@ -207,7 +207,7 @@ void DMA1_Stream0_IRQHandler(void)
     if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
         LL_DMA_ClearFlag_TC0(DMA1);
         tim_off();
-        uart_dma_transmit_sg();
+        //uart_dma_transmit_sg();
     }
 
     if (LL_DMA_IsActiveFlag_TE0(DMA1)) {

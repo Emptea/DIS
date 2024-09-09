@@ -13,6 +13,7 @@ void uart_send_array(USART_TypeDef *USARTx, uint8_t *debug_buf, uint32_t length)
 void uart_dma_tx_config();
 void uart_dma_rx_config();
 
+void uart_dma_echo();
 void uart_dma_transmit_sg();
 
 void uart_dma_tx_handler();

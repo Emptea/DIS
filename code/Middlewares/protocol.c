@@ -14,8 +14,12 @@ const enum cmd {
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '3'),
     CMD_SEND_RES = cmd2uint('c', 'm', 'd', '4'),
     CMD_SEND_SG = cmd2uint('c', 'm', 'd', '5'),
+    CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
 } cmd;
 
+void conv_sg()
+{
+}
 
 void cmd_work(uint8_t *buf)
 {
@@ -23,20 +27,23 @@ void cmd_work(uint8_t *buf)
     switch (cmd) {
     case CMD_PWR_ON: {
         pwr_on();
-        LL_USART_TransmitData8(USART1, (uint8_t)cmd);
+        uart_dma_echo();
     } break;
     case CMD_PWR_OFF: {
         pwr_off();
-        LL_USART_TransmitData8(USART1, (uint8_t)cmd);
+        uart_dma_echo();
     } break;
     case CMD_START_CONV: {
         adc_start();
         tim_on();
     } break;
-    case CMD_SEND_RES:{
+    case CMD_SEND_RES: {
     } break;
     case CMD_SEND_SG: {
         uart_dma_transmit_sg();
+    } break;
+    case CMD_PING: {
+        uart_dma_echo();
     } break;
     default: {
     } break;

@@ -70,8 +70,16 @@ void uart_timeout_config()
     LL_USART_EnableIT_RTO(USART1);
 }
 
+void uart_dma_echo()
+{
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, CMD_LEN);
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_2, (uint32_t)&uart_rx_buf);
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
+}
+
 void uart_dma_transmit_sg()
 {
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, 2 * RE_SG_LEN);
     LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_2, (uint32_t)&sg);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
 }
@@ -100,7 +108,7 @@ void uart_recv_dma_callback()
     }
     usart_status = USART_RCV;
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
-    LL_USART_EnableRxTimeout(USART1);
+    
 }
 
 void uart_dma_rx_handler()
@@ -109,6 +117,7 @@ void uart_dma_rx_handler()
         LL_USART_DisableRxTimeout(USART1);
         LL_DMA_ClearFlag_TC1(DMA1);
         uart_recv_dma_callback();
+        LL_USART_EnableRxTimeout(USART1);
     }
 
     if (LL_DMA_IsActiveFlag_TE1(DMA1)) {

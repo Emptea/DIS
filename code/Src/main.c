@@ -96,8 +96,8 @@ int main(void)
   uart_dma_tx_config();
   uart_dma_rx_config();
 
-  adc_en();
   adc_calibration();
+	adc_en();
   adc_start();
   tim_on();
   /* Infinite loop */

@@ -5,7 +5,7 @@
 #include "tim_ex.h"
 
 #define cmd2uint(char1, char2, char3, char4) \
-    ((char4 << 24) + (char3 << 16) + (char2 << 8) + char1)
+    ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
 const enum cmd {
     CND_NONE = cmd2uint('c', 'm', 'd', '0'),

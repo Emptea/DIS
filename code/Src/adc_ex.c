@@ -22,7 +22,6 @@ void adc_en()
 void adc_start()
 {
     LL_ADC_REG_StartConversion(ADC3);
-    // LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, RE_SG_LEN);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
 }
 

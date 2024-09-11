@@ -44,7 +44,7 @@ void uart_dma_rx_config()
         LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_RECEIVE),
         (uint32_t)&uart_rx_buf,
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_1));
-    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, CMD_LEN);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, CMD_LEN+2);
 
     LL_DMA_ClearFlag_TE1(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_1);
@@ -120,7 +120,8 @@ void uart_recv_dma_callback()
 
 void crc_check()
 {
-    if (uart_rx_buf.crc != crc_calc(uart_rx_buf.bytes, CMD_LEN)) {
+    uint16_t crc = crc_calc(uart_rx_buf.bytes, CMD_LEN);
+    if (uart_rx_buf.crc != crc) {
         usart_status = USART_ERROR;
     }
 }

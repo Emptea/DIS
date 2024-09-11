@@ -4,6 +4,7 @@ import crcmod
 
 crc16 = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0x0000)
 sz_cmd = 4
+cmd2send = bytearray('ping', 'utf-8')
 
 ser = serial.Serial()
 ser.baudrate= 256000
@@ -18,4 +19,4 @@ def ask(ser, cmd, sz_resp):
     resp=ser.read(sz_resp+2)
     print(' '.join(format(x, '02x') for x in resp))
 
-ask(ser, 'cmd1', 4)
+ask(ser, cmd2send[::-1], 4)

@@ -152,18 +152,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>124</LineNumber>
+          <LineNumber>102</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134234292</Address>
+          <Address>134234468</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\code\Src\usart_ex.c</Filename>
+          <Filename>..\code\Src\main.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Src/usart_ex.c\124</Expression>
+          <Expression>\\dis\../code/Src/main.c\102</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>5</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134234570</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\code\Src\tim_ex.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\dis\../code/Src/tim_ex.c\5</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -185,7 +201,7 @@
         <Ww>
           <count>3</count>
           <WinNumber>1</WinNumber>
-          <ItemText>usart_status</ItemText>
+          <ItemText>&amp;usart_status</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>
@@ -230,6 +246,12 @@
       <pszMrulep></pszMrulep>
       <pSingCmdsp></pSingCmdsp>
       <pMultCmdsp></pMultCmdsp>
+      <SystemViewers>
+        <Entry>
+          <Name>System Viewer\TIM3</Name>
+          <WinId>35905</WinId>
+        </Entry>
+      </SystemViewers>
       <DebugDescription>
         <Enable>1</Enable>
         <EnableFlashSeq>0</EnableFlashSeq>

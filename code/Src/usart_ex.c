@@ -8,9 +8,9 @@ union {
     uint8_t bytes[CMD_LEN+2];
 } uart_rx_buf;
 
-enum usart_status {
-    USART_RCV,
-    USART_ERROR,
+volatile static enum {
+    USART_RCV = 0,
+    USART_ERROR = 1,
 } usart_status = USART_RCV;
 
 void uart_send_str(USART_TypeDef *USARTx, uint8_t *str)
@@ -80,7 +80,7 @@ void uart_timeout_config()
 
 void uart_dma_echo()
 {
-    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, CMD_LEN);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, CMD_LEN+2);
     LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_2, (uint32_t)&uart_rx_buf);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
 }
@@ -124,6 +124,7 @@ void crc_check()
     if (uart_rx_buf.crc != crc) {
         usart_status = USART_ERROR;
     }
+    LL_CRC_SetInitialData(CRC, 0xFFFF);
 }
 
 void uart_dma_rx_handler()

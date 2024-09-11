@@ -454,6 +454,11 @@
               <FileType>1</FileType>
               <FilePath>..\code\Src\crc.c</FilePath>
             </File>
+            <File>
+              <FileName>crc_ex.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Src\crc_ex.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

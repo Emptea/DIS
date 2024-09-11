@@ -9,5 +9,5 @@
 
 
 extern int16_t sg[RE_SG_LEN];
-void cmd_work(uint8_t *buf);
+void cmd_work(uint32_t cmd);
 #endif

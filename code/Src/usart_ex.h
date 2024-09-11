@@ -6,7 +6,6 @@
 #include "protocol.h"
 
 extern uint8_t uart_tx_buf[RE_SG_LEN];
-extern uint8_t uart_rx_buf[CMD_LEN];
 
 void uart_send_array(USART_TypeDef *USARTx, uint8_t *debug_buf, uint32_t length);
 

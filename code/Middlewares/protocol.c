@@ -23,9 +23,8 @@ void conv_sg()
 {
 }
 
-void cmd_work(uint8_t *buf)
+void cmd_work(uint32_t cmd)
 {
-    enum cmd cmd = (enum cmd)(*(uint32_t *)buf);
     switch (cmd) {
     case CMD_PWR_ON: {
         pwr_on();

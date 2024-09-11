@@ -20,6 +20,7 @@
 #include "main.h"
 #include "adc.h"
 #include "adc_ex.h"
+#include "crc.h"
 #include "dma.h"
 #include "memorymap.h"
 #include "tim.h"
@@ -44,8 +45,6 @@
 /* Private variables ---------------------------------------------------------*/
 int16_t sg[RE_SG_LEN] = {0};
 uint8_t uart_tx_buf[RE_SG_LEN] = {0};
-uint8_t uart_rx_buf[CMD_LEN] = {0};
-
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);

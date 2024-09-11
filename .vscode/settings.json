@@ -5,6 +5,7 @@
         "stm32h7xx_ll_adc.h": "c",
         "usart_ex.h": "c",
         "stm32h7xx_ll_usart.h": "c",
-        "dma.h": "c"
+        "dma.h": "c",
+        "stm32h7xx.h": "c"
     }
 }

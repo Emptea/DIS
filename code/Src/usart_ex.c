@@ -1,4 +1,12 @@
 #include "usart_ex.h"
+#include "crc_ex.h"
+union {
+    struct {
+        uint32_t cmd;
+        uint16_t crc;
+    };
+    uint8_t bytes[CMD_LEN+2];
+} uart_rx_buf;
 
 enum usart_status {
     USART_RCV,
@@ -101,14 +109,20 @@ void uart_recv_dma_callback()
     case USART_ERROR: {
         break;
     }
-    case USART_RCV: {  
-        cmd_work(uart_rx_buf);
+    case USART_RCV: {
+        cmd_work(uart_rx_buf.cmd);
         break;
     }
     }
     usart_status = USART_RCV;
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
-    
+}
+
+void crc_check()
+{
+    if (uart_rx_buf.crc != crc_calc(uart_rx_buf.bytes, CMD_LEN)) {
+        usart_status = USART_ERROR;
+    }
 }
 
 void uart_dma_rx_handler()
@@ -116,6 +130,7 @@ void uart_dma_rx_handler()
     if (LL_DMA_IsActiveFlag_TC1(DMA1)) {
         LL_USART_DisableRxTimeout(USART1);
         LL_DMA_ClearFlag_TC1(DMA1);
+        crc_check();
         uart_recv_dma_callback();
         LL_USART_EnableRxTimeout(USART1);
     }

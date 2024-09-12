@@ -25,16 +25,16 @@ void adc_start()
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
 }
 
-void adc_dma_config()
+void adc_dma_config(void *buf, uint32_t size)
 {
     LL_ADC_REG_SetDataTransferMode(ADC3, LL_ADC_REG_DMA_TRANSFER_LIMITED);
     LL_DMA_ConfigAddresses(
         DMA1,
         LL_DMA_STREAM_0,
         LL_ADC_DMA_GetRegAddr(ADC3, LL_ADC_DMA_REG_REGULAR_DATA),
-        (uint32_t)&sg,
+        (uint32_t)buf,
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_0));
-    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, RE_SG_LEN);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, size);
 
     LL_DMA_ClearFlag_TE0(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_0);

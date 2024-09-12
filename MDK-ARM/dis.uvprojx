@@ -535,9 +535,9 @@
           <GroupName>Middlewares</GroupName>
           <Files>
             <File>
-              <FileName>protocol.c</FileName>
+              <FileName>dis.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\code\Middlewares\protocol.c</FilePath>
+              <FilePath>..\code\Middlewares\dis.c</FilePath>
             </File>
           </Files>
         </Group>

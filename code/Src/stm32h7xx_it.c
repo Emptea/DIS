@@ -24,8 +24,6 @@
 #include "usart_ex.h"
 #include "adc_ex.h"
 #include "tim_ex.h"
-#include "protocol.h"
-
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -190,43 +188,4 @@ void SysTick_Handler(void)
     /* USER CODE BEGIN SysTick_IRQn 1 */
 
     /* USER CODE END SysTick_IRQn 1 */
-}
-
-/******************************************************************************/
-/* STM32H7xx Peripheral Interrupt Handlers                                    */
-/* Add here the Interrupt Handlers for the used peripherals.                  */
-/* For the available peripheral interrupt handler names,                      */
-/* please refer to the startup file (startup_stm32h7xx.s).                    */
-/******************************************************************************/
-
-/**
- * @brief This function handles DMA1 stream0 global interrupt.
- */
-void DMA1_Stream0_IRQHandler(void)
-{
-    if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
-        LL_DMA_ClearFlag_TC0(DMA1);
-        tim_off();
-        //uart_dma_transmit_sg();
-    }
-
-    if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
-        LL_DMA_ClearFlag_TE0(DMA1);
-    }
-}
-
-/**
- * @brief This function handles DMA1 stream1 global interrupt.
- */
-void DMA1_Stream1_IRQHandler(void)
-{
-    uart_dma_rx_handler();
-}
-
-/**
- * @brief This function handles DMA1 stream2 global interrupt.
- */
-void DMA1_Stream2_IRQHandler(void)
-{
-    uart_dma_tx_handler();
 }

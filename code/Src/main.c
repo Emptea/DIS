@@ -19,17 +19,13 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "adc.h"
-#include "adc_ex.h"
 #include "crc.h"
 #include "dma.h"
 #include "memorymap.h"
 #include "tim.h"
-#include "tim_ex.h"
 #include "usart.h"
-#include "usart_ex.h"
 #include "gpio.h"
-#include "gpio_ex.h"
-
+#include "dis.h"
 /* Private includes ----------------------------------------------------------*/
 
 
@@ -43,8 +39,6 @@
 
 
 /* Private variables ---------------------------------------------------------*/
-int16_t sg[RE_SG_LEN] = {0};
-uint8_t uart_tx_buf[RE_SG_LEN] = {0};
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
@@ -90,16 +84,8 @@ int main(void)
   MX_TIM3_Init();
   MX_CRC_Init();
 
-  uart_timeout_config();
-  
-  adc_dma_config();
-  uart_dma_tx_config();
-  uart_dma_rx_config();
+  dis_init();
 
-  adc_calibration();
-  adc_en();
-  adc_start();
-  tim_on();
   /* Infinite loop */
   while (1)
   {

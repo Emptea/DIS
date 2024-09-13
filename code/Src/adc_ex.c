@@ -19,10 +19,16 @@ void adc_en()
     LL_ADC_REG_StartConversion(ADC3);
 }
 
-void adc_start()
+void adc_dma_start(void *buf, uint32_t size)
 {
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_0, (uint32_t)buf);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_0, size);
     LL_ADC_REG_StartConversion(ADC3);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_0);
+}
+
+__WEAK void adc_dma_callback()
+{    
 }
 
 void adc_dma_config(void *buf, uint32_t size)

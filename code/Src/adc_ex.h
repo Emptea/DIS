@@ -8,5 +8,6 @@
 void adc_calibration();
 void adc_en();
 void adc_dma_config(void *buf, uint32_t size);
-void adc_start();
+void adc_dma_start(void *buf, uint32_t size);
+void adc_dma_callback();
 #endif

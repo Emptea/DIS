@@ -6,3 +6,4 @@ build
 /cube/*
 !/cube/*.ioc
 /python_test/__pycache__/
+matlab/*.fig

@@ -35,24 +35,24 @@ def plot(sg):
     # ax.plot(x, sg)
     plt.show()
 
-#ask(ser, cmd_start_exti[::-1], 4)
-# 
-# print(' '.join(format(x, '02x') for x in resp))
+ask(ser, cmd_pwr_off[::-1])
+resp = ser.read(6)
+print(' '.join(format(x, '02x') for x in resp))
 
-ask(ser, cmd_start_exti[::-1])
-pack = bytearray(sz_cmd + 2*sz_sg - 1)
-pack[0:(sz_cmd-1)]= ser.read(sz_cmd)
-rng = 2*int(sz_sg/8000)
-for i in range(rng):
-    pack[(sz_cmd + i*8000):(sz_cmd + (i+1)*8000)]=ser.read(8000)
-crc = ser.read(2)
+# ask(ser, cmd_send_sg[::-1])
+# pack = bytearray(sz_cmd + 2*sz_sg - 1)
+# pack[0:(sz_cmd-1)]= ser.read(sz_cmd)
+# rng = 2*int(sz_sg/8000)
+# for i in range(rng):
+#     pack[(sz_cmd + i*8000):(sz_cmd + (i+1)*8000)]=ser.read(8000)
+# crc = ser.read(2)
 
-print(len(pack))
-sg = struct.unpack_from(f'{sz_sg}H', pack, sz_cmd)
-# print(' '.join(format(x, '02x') for x in pack))
-print(' '.join(format(x, '02x') for x in crc))
-crc_calc = crc16(pack)
-crc_calc = crc_calc.to_bytes(2,'little')
-print(' '.join(format(x, '02x') for x in crc_calc))
-if crc == crc_calc:
-    plot(sg) 
+# print(len(pack))
+# sg = struct.unpack_from(f'{sz_sg}H', pack, sz_cmd)
+# # print(' '.join(format(x, '02x') for x in pack))
+# print(' '.join(format(x, '02x') for x in crc))
+# crc_calc = crc16(pack)
+# crc_calc = crc_calc.to_bytes(2,'little')
+# print(' '.join(format(x, '02x') for x in crc_calc))
+# if crc == crc_calc:
+#     plot(sg) 

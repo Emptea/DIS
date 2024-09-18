@@ -65,6 +65,7 @@ static void crc_check()
 static void dis_echo()
 {
     uart_dma_send(&rx_buf, CMD_LEN + 2);
+    status = STATE_RCV;
 }
 
 void dis_init()
@@ -103,6 +104,8 @@ void dis_cmd_work()
     case CMD_SEND_RES: {
     } break;
     case CMD_SEND_SG: {
+        status = STATE_SEND_SG;
+        tx_buf.cmd = CMD_SEND_SG;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
@@ -162,13 +165,12 @@ void uart_recv_dma_callback()
         break;
     }
     }
-    status = STATE_RCV;
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
 }
 
 void EXTI0_IRQHandler(void)
 {
-    if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET) {
+    if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET && LL_EXTI_IsEnabledIT_0_31(LL_EXTI_LINE_0)) {
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
         tx_buf.cmd = CMD_SEND_SG;
         crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);

@@ -5,6 +5,9 @@
 #include "tim_ex.h"
 #include "crc_ex.h"
 #include "stm32h7xx_ll_exti.h"
+#include "estimate_psd.h"
+#include "estimate_psd_types.h"
+#include "estimate_psd_emxAPI.h"
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
@@ -12,6 +15,13 @@
 #define SG_CHUNK_LEN   64000
 #define SG_CHUNKS      RE_SG_LEN / SG_CHUNK_LEN
 #define SG_UART_CHUNKS 2 * RE_SG_LEN / SG_CHUNK_LEN
+#define ORDER 32
+#define NFFT 4096
+#define FS  5e6
+
+emxArray_real32_T *Pxx;
+emxArray_real32_T *F;
+emxArray_real32_T *x;
 
 enum cmd {
     CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
@@ -51,6 +61,7 @@ static volatile enum {
 
 static void conv_sg()
 {
+    estimate_psd(x, ORDER, NFFT, FS, Pxx, F);
 }
 
 static void crc_check()
@@ -70,6 +81,11 @@ static void dis_echo()
 
 void dis_init()
 {
+    emxInitArray_real32_T(&x, RE_SG_LEN);
+    x->data = (float *)sg;
+
+    emxInitArray_real32_T(&Pxx, NFFT/2+1);
+    emxInitArray_real32_T(&F, NFFT/2+1);
     uart_timeout_config();
 
     adc_dma_config(&sg, SG_CHUNK_LEN);

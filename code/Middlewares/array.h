@@ -30,7 +30,16 @@ void array_sum4(
 
 float32_t array_sum(float32_t *arr, uint32_t len);
 
-inline static void array_i16_to_cmplxf32(int16_t *src, cmplx64_t *dst, uint32_t len)
+inline static void array_i16_to_cmplx_arrf32(int16_t *src, float32_t *dst, uint32_t len)
+{
+    for (uint32_t tmp_index = 0; tmp_index < len; tmp_index++)
+	{
+		dst[2*tmp_index] = (float32_t) src[tmp_index];//(float32_t)65536.0;
+		dst[2*tmp_index+1] = 0;
+	}		
+}
+
+inline static void array_i16_to_f32(int16_t *src, cmplx64_t *dst, uint32_t len)
 {
     do {
         *dst++ = *src++;

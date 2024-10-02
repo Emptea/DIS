@@ -11,9 +11,14 @@
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_CHUNK_BYTE_LEN     64000
-#define SG_CHUNK_HALFWORD_LEN 64000 / 2
-#define SG_CHUNK_WORD_LEN     64000 / 4
+#define SG_LEN (uint32_t) 32768
+#define CMD_LEN 4
+#define SG_ADC_CHUNK_LEN      (uint32_t)32768
+#define SG_CHUNK_BYTE_LEN     (uint32_t)32768
+#define SG_ADC_CHUNKS          SG_LEN / SG_ADC_CHUNK_LEN
+
+#define SG_CHUNK_HALFWORD_LEN SG_CHUNK_BYTE_LEN / 2
+#define SG_CHUNK_WORD_LEN     SG_CHUNK_BYTE_LEN / 4
 #define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
 #define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
 #define FFT_WORD_CHUNKS       SG_WORD_CHUNKS / 2
@@ -110,7 +115,7 @@ void dis_work()
     case ADC_STATE_RDY:
         array_i16_to_cmplxf32(adc_data, fft, SG_LEN);
         cmplx_fft_calc(fft);
-        arm_cmplx_mag_squared_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
+        arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
         adc_state = ADC_STATE_IDLE;
         uart_state = UART_STATE_SEND_FFT;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
@@ -170,8 +175,8 @@ void uart_send_dma_callback()
         break;
     }
     case UART_STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&fft_mag_sq[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&fft_mag_sq[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
+        tx_buf.crc = crc_calc((uint8_t *)&fft[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&fft[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == FFT_WORD_CHUNKS) {
             uart_state = UART_STATE_SEND_CRC;
         };
@@ -237,7 +242,7 @@ void adc_dma_callback()
 {
     static int cnt = 0;
     cnt++;
-    if (cnt < SG_HALFWORD_CHUNKS) {
+    if (cnt < SG_ADC_CHUNKS) {
         adc_dma_start(&adc_data[SG_CHUNK_BYTE_LEN * cnt], SG_CHUNK_BYTE_LEN);
     } else {
         tim_off();

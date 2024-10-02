@@ -6,6 +6,7 @@
 #include "crc_ex.h"
 #include "stm32h7xx_ll_exti.h"
 #include "cmplx.h"
+#include "array.h"
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)

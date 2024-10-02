@@ -5,21 +5,27 @@
 #include "tim_ex.h"
 #include "crc_ex.h"
 #include "stm32h7xx_ll_exti.h"
+#include "cmplx.h"
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_CHUNK_LEN   64000
-#define SG_CHUNKS      RE_SG_LEN / SG_CHUNK_LEN
-#define SG_UART_CHUNKS 2 * RE_SG_LEN / SG_CHUNK_LEN
+#define SG_CHUNK_BYTE_LEN     64000
+#define SG_CHUNK_HALFWORD_LEN 64000 / 2
+#define SG_CHUNK_WORD_LEN     64000 / 4
+#define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
+#define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
+#define FFT_WORD_CHUNK        SG_WORD_CHUNKS / 2
+#define SG_HALF_LEN           SG_LEN / 2
 
 enum cmd {
     CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
     CMD_PWR_ON = cmd2uint('c', 'm', 'd', '1'),
     CMD_PWR_OFF = cmd2uint('c', 'm', 'd', '2'),
     CMD_EXTI_ON = cmd2uint('c', 'm', 'd', '3'),
+    CMD_SEND_RES = cmd2uint('c', 'm', 'd', '6'),
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '7'),
-    CMD_SEND_RES = cmd2uint('c', 'm', 'd', '8'),
+    CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '8'),
     CMD_SEND_SG = cmd2uint('c', 'm', 'd', '9'),
     CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
 };
@@ -39,14 +45,19 @@ struct {
     uint16_t crc;
 } tx_buf;
 
-int16_t sg[RE_SG_LEN];
+int16_t adc_data[SG_LEN] = {0};
+static cmplx64_t signals[SG_LEN] = {0};
+static float32_t ffts_mag_sq[SG_HALF_LEN] = {0};
 
 static volatile enum {
     STATE_RCV = 0,
-    STATE_SEND_SG = 1,
+    STATE_SEND_RES = 1,
     STATE_SEND_CRC = 2,
     STATE_ECHO = 3,
     STATE_ERROR = 4,
+    // debug states
+    STATE_SEND_FFT,
+    STATE_SEND_SG,
 } status = STATE_RCV;
 
 static void conv_sg()
@@ -72,7 +83,7 @@ void dis_init()
 {
     uart_timeout_config();
 
-    adc_dma_config(&sg, SG_CHUNK_LEN);
+    adc_dma_config(&adc_data, SG_CHUNK_BYTE_LEN);
     uart_dma_tx_config(&tx_buf, CMD_LEN + 2);
     uart_dma_rx_config(&rx_buf, CMD_LEN + 2);
 
@@ -98,14 +109,19 @@ void dis_cmd_work()
         LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_0);
     } break;
     case CMD_START_CONV: {
-        adc_dma_start(&sg, SG_CHUNK_LEN);
+        adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
         tim_on();
     } break;
     case CMD_SEND_RES: {
+        // TODO
+    } break;
+    case CMD_SEND_FFT: {
+        status = STATE_SEND_FFT;
+        uart_dma_send(&tx_buf.cmd, CMD_LEN);
+        crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
     case CMD_SEND_SG: {
         status = STATE_SEND_SG;
-        tx_buf.cmd = CMD_SEND_SG;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
@@ -125,10 +141,18 @@ void uart_send_dma_callback()
         status = STATE_RCV;
         break;
     }
+    case STATE_SEND_FFT: {
+        tx_buf.crc = crc_calc((uint8_t *)&ffts_mag_sq[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&ffts_mag_sq[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
+        if (cnt == FFT_WORD_CHUNKS) {
+            status = STATE_SEND_CRC;
+        };
+        break;
+    }
     case STATE_SEND_SG: {
-        tx_buf.crc = crc_calc((uint8_t *)&sg[SG_CHUNK_LEN/2 * cnt], SG_CHUNK_LEN);
-        uart_dma_send(&sg[SG_CHUNK_LEN/2 * (cnt++)], SG_CHUNK_LEN);
-        if (cnt == SG_UART_CHUNKS) {
+        tx_buf.crc = crc_calc((uint8_t *)&adc_data[SG_CHUNK_HALFWORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&adc_data[SG_CHUNK_HALFWORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
+        if (cnt == SG_HALFWORD_CHUNKS) {
             status = STATE_SEND_CRC;
         };
         break;
@@ -174,7 +198,7 @@ void EXTI0_IRQHandler(void)
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
         tx_buf.cmd = CMD_SEND_SG;
         crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
-        adc_dma_start(&sg, SG_CHUNK_LEN);
+        adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
         tim_on();
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }
@@ -184,8 +208,8 @@ void adc_dma_callback()
 {
     static int cnt = 0;
     cnt++;
-    if (cnt < SG_CHUNKS) {
-        adc_dma_start(&sg[SG_CHUNK_LEN * cnt], SG_CHUNK_LEN);
+    if (cnt < SG_HALFWORD_CHUNKS) {
+        adc_dma_start(&adc_data[SG_CHUNK_BYTE_LEN * cnt], SG_CHUNK_BYTE_LEN);
     } else {
         tim_off();
         status = STATE_SEND_SG;

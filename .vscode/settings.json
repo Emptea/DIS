@@ -19,6 +19,7 @@
         "ranges": "c",
         "functional": "c",
         "cmplx.h": "c",
-        "arm_const_structs.h": "c"
+        "arm_const_structs.h": "c",
+        "extra_ffts.h": "c"
     }
 }

@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>USE_FULL_LL_DRIVER,HSE_VALUE=12000000,HSE_STARTUP_TIMEOUT=100,LSE_STARTUP_TIMEOUT=5000,LSE_VALUE=32768,EXTERNAL_CLOCK_VALUE=12288000,HSI_VALUE=64000000,LSI_VALUE=32000,VDD_VALUE=3300,STM32H743xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\code\Src;..\code\Drivers\STM32H7xx_HAL_Driver\Inc;..\code\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\code\Drivers\CMSIS\Include;..\code\Middlewares</IncludePath>
+              <IncludePath>..\code\Src;..\code\Drivers\STM32H7xx_HAL_Driver\Inc;..\code\Drivers\CMSIS\Device\ST\STM32H7xx\Include;..\code\Drivers\CMSIS\Include;..\code\Middlewares;..\code\Middlewares\LongFFT</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -538,6 +538,46 @@
               <FileName>dis.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\code\Middlewares\dis.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Middlewares/LongFFT</GroupName>
+          <Files>
+            <File>
+              <FileName>arm_bitreversal2_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_bitreversal2_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_cfft_f32_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_cfft_f32_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_cfft_init_f32_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_cfft_init_f32_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_common_tables_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_common_tables_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_const_structs_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_const_structs_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_rfft_fast_f32_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_rfft_fast_f32_extra.c</FilePath>
+            </File>
+            <File>
+              <FileName>arm_rfft_fast_init_f32_extra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\code\Middlewares\LongFFT\arm_rfft_fast_init_f32_extra.c</FilePath>
             </File>
           </Files>
         </Group>

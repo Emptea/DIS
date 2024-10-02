@@ -3,7 +3,7 @@
         {
             "name": "gcc-arm",
             "includePath": [
-                "${workspaceFolder}/code/**"
+                "${workspaceFolder}/code/**",
             ],
             "defines": [
                 "DEBUG",

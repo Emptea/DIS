@@ -5,6 +5,6 @@
 #define SG_LEN 128000
 #define CMD_LEN 4
 
-void dis_cmd_work();
 void dis_init();
+void dis_work();
 #endif

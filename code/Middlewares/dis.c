@@ -15,7 +15,7 @@
 #define SG_CHUNK_WORD_LEN     64000 / 4
 #define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
 #define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
-#define FFT_WORD_CHUNK        SG_WORD_CHUNKS / 2
+#define FFT_WORD_CHUNKS       SG_WORD_CHUNKS / 2
 #define SG_HALF_LEN           SG_LEN / 2
 
 enum cmd {
@@ -46,21 +46,30 @@ struct {
 } tx_buf;
 
 int16_t adc_data[SG_LEN] = {0};
-static cmplx64_t signals[SG_LEN] = {0};
-static float32_t ffts_mag_sq[SG_HALF_LEN] = {0};
+static cmplx64_t fft[SG_LEN] = {0};
+static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
 
 static volatile enum {
-    STATE_RCV = 0,
-    STATE_SEND_RES = 1,
-    STATE_SEND_CRC = 2,
-    STATE_ECHO = 3,
-    STATE_ERROR = 4,
+    UART_STATE_RCV = 0,
+    UART_STATE_SEND_RES = 1,
+    UART_STATE_SEND_CRC = 2,
+    UART_STATE_ECHO = 3,
+    UART_STATE_ERROR = 4,
     // debug states
-    STATE_SEND_FFT,
-    STATE_SEND_SG,
-} status = STATE_RCV;
+    UART_STATE_SEND_FFT,
+    UART_STATE_SEND_SG,
+} uart_state = UART_STATE_RCV;
 
-static void conv_sg()
+static volatile enum {
+    ADC_STATE_IDLE = 0,
+    ADC_STATE_CONV = 1,
+    ADC_STATE_RDY = 2,
+    ADC_STATE_ERROR = 3,
+} adc_state = ADC_STATE_IDLE;
+
+static void
+conv_sg()
+
 {
 }
 
@@ -68,7 +77,7 @@ static void crc_check()
 {
     uint16_t crc = crc_calc(rx_buf.bytes, CMD_LEN);
     if (rx_buf.crc != crc) {
-        status = STATE_ERROR;
+        uart_state = UART_STATE_ERROR;
     }
     LL_CRC_SetInitialData(CRC, 0xFFFF);
 }
@@ -76,7 +85,7 @@ static void crc_check()
 static void dis_echo()
 {
     uart_dma_send(&rx_buf, CMD_LEN + 2);
-    status = STATE_RCV;
+    uart_state = UART_STATE_RCV;
 }
 
 void dis_init()
@@ -93,7 +102,24 @@ void dis_init()
     LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_0);
 }
 
-void dis_cmd_work()
+void dis_work()
+{
+    switch (adc_state)
+    {
+    case ADC_STATE_RDY:
+        array_i16_to_cmplxf32(adc_data, fft, SG_LEN);
+        cmplx_fft_calc(fft);
+        arm_cmplx_mag_squared_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
+        adc_state = ADC_STATE_IDLE;
+        uart_state = UART_STATE_SEND_FFT;
+        uart_dma_send(&tx_buf.cmd, CMD_LEN);
+        break;
+    default:
+        break;
+    }
+}
+
+void cmd_work()
 {
     tx_buf.cmd = rx_buf.cmd;
     switch (rx_buf.cmd) {
@@ -109,6 +135,7 @@ void dis_cmd_work()
         LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_0);
     } break;
     case CMD_START_CONV: {
+        adc_state = ADC_STATE_CONV;
         adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
         tim_on();
     } break;
@@ -116,12 +143,12 @@ void dis_cmd_work()
         // TODO
     } break;
     case CMD_SEND_FFT: {
-        status = STATE_SEND_FFT;
+        uart_state = UART_STATE_SEND_FFT;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
     case CMD_SEND_SG: {
-        status = STATE_SEND_SG;
+        uart_state = UART_STATE_SEND_SG;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
@@ -136,40 +163,40 @@ void dis_cmd_work()
 void uart_send_dma_callback()
 {
     static uint32_t cnt = 0;
-    switch (status) {
-    case STATE_ERROR: {
-        status = STATE_RCV;
+    switch (uart_state) {
+    case UART_STATE_ERROR: {
+        uart_state = UART_STATE_RCV;
         break;
     }
-    case STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&ffts_mag_sq[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&ffts_mag_sq[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
+    case UART_STATE_SEND_FFT: {
+        tx_buf.crc = crc_calc((uint8_t *)&fft_mag_sq[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&fft_mag_sq[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == FFT_WORD_CHUNKS) {
-            status = STATE_SEND_CRC;
+            uart_state = UART_STATE_SEND_CRC;
         };
         break;
     }
-    case STATE_SEND_SG: {
+    case UART_STATE_SEND_SG: {
         tx_buf.crc = crc_calc((uint8_t *)&adc_data[SG_CHUNK_HALFWORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
         uart_dma_send(&adc_data[SG_CHUNK_HALFWORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == SG_HALFWORD_CHUNKS) {
-            status = STATE_SEND_CRC;
+            uart_state = UART_STATE_SEND_CRC;
         };
         break;
     }
-    case STATE_SEND_CRC: {
+    case UART_STATE_SEND_CRC: {
         uart_dma_send(&tx_buf.crc, 2);
         LL_CRC_SetInitialData(CRC, 0xFFFF);
         cnt = 0;
-        status = STATE_RCV;
+        uart_state = UART_STATE_RCV;
         break;
     }
-    case STATE_ECHO: {
-        status = STATE_RCV;
+    case UART_STATE_ECHO: {
+        uart_state = UART_STATE_RCV;
         break;
     }
     default: {
-        status = STATE_RCV;
+        uart_state = UART_STATE_RCV;
         break;
     }
     }
@@ -177,12 +204,12 @@ void uart_send_dma_callback()
 
 void uart_recv_dma_callback()
 {
-    switch (status) {
-    case STATE_ERROR: {
+    switch (uart_state) {
+    case UART_STATE_ERROR: {
         break;
     }
-    case STATE_RCV: {
-        dis_cmd_work();
+    case UART_STATE_RCV: {
+        cmd_work();
         break;
     }
     default: {
@@ -199,6 +226,7 @@ void EXTI0_IRQHandler(void)
         tx_buf.cmd = CMD_SEND_SG;
         crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
         adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
+        adc_state = ADC_STATE_CONV;
         tim_on();
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }
@@ -212,8 +240,9 @@ void adc_dma_callback()
         adc_dma_start(&adc_data[SG_CHUNK_BYTE_LEN * cnt], SG_CHUNK_BYTE_LEN);
     } else {
         tim_off();
-        status = STATE_SEND_SG;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN);
+        adc_state = ADC_STATE_RDY;
+        // uart_state = UART_STATE_SEND_SG;
+        // uart_dma_send(&tx_buf.cmd, CMD_LEN);
         cnt = 0;
     }
 }
@@ -230,5 +259,6 @@ void DMA1_Stream0_IRQHandler(void)
 
     if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
         LL_DMA_ClearFlag_TE0(DMA1);
+        adc_state = ADC_STATE_ERROR;
     }
 }

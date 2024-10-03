@@ -39,6 +39,13 @@ inline static void array_i16_to_cmplx_arrf32(int16_t *src, float32_t *dst, uint3
 	}		
 }
 
+inline static void array_ui16_to_cmplxf32(uint16_t *src, cmplx64_t *dst, uint32_t len)
+{
+    do {
+        *dst++ = *src++;
+    } while (--len);
+}
+
 inline static void array_i16_to_cmplxf32(int16_t *src, cmplx64_t *dst, uint32_t len)
 {
     do {

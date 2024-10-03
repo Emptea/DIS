@@ -6,22 +6,24 @@
 #include "crc_ex.h"
 #include "stm32h7xx_ll_exti.h"
 #include "cmplx.h"
+#include "arm_math.h"
 #include "array.h"
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_LEN (uint32_t) 32768
-#define CMD_LEN 4
+#define SG_LEN                (uint32_t)32768
+#define CMD_LEN               4
+#define RES_LEN               4
 #define SG_ADC_CHUNK_LEN      (uint32_t)32768
 #define SG_CHUNK_BYTE_LEN     (uint32_t)32768
-#define SG_ADC_CHUNKS          SG_LEN / SG_ADC_CHUNK_LEN
+#define SG_ADC_CHUNKS         SG_LEN / SG_ADC_CHUNK_LEN
 
 #define SG_CHUNK_HALFWORD_LEN SG_CHUNK_BYTE_LEN / 2
 #define SG_CHUNK_WORD_LEN     SG_CHUNK_BYTE_LEN / 4
 #define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
 #define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
-#define FFT_WORD_CHUNKS       SG_WORD_CHUNKS / 2
+#define FFT_WORD_CHUNKS       SG_WORD_CHUNKS
 #define SG_HALF_LEN           SG_LEN / 2
 
 enum cmd {
@@ -51,7 +53,7 @@ struct {
     uint16_t crc;
 } tx_buf;
 
-int16_t adc_data[SG_LEN] = {0};
+uint16_t adc_data[SG_LEN] = {0};
 static cmplx64_t fft[SG_LEN] = {0};
 static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
 
@@ -72,9 +74,6 @@ static volatile enum {
     ADC_STATE_RDY = 2,
     ADC_STATE_ERROR = 3,
 } adc_state = ADC_STATE_IDLE;
-
-static void
-conv_sg()
 
 {
 }
@@ -175,8 +174,8 @@ void uart_send_dma_callback()
         break;
     }
     case UART_STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&fft[SG_CHUNK_WORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&fft[SG_CHUNK_WORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
+        tx_buf.crc = crc_calc((uint8_t *)&fft[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&fft[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == FFT_WORD_CHUNKS) {
             uart_state = UART_STATE_SEND_CRC;
         };

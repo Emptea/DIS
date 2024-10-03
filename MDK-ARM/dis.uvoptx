@@ -183,7 +183,12 @@
         <Ww>
           <count>6</count>
           <WinNumber>1</WinNumber>
-          <ItemText>adc_data</ItemText>
+          <ItemText>adc_data,0x0A</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>FFT_WORD_CHUNKS</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

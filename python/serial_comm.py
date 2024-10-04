@@ -14,11 +14,12 @@ cmd_pwr_on = bytearray('cmd1', 'utf-8')
 cmd_pwr_off = bytearray('cmd2', 'utf-8')
 cmd_start_exti = bytearray('cmd3', 'utf-8')
 cmd_start_conv = bytearray('cmd7', 'utf-8')
+cmd_send_sg = bytearray('cmd8', 'utf-8')
 cmd_send_sg = bytearray('cmd9', 'utf-8')
 
 ser = serial.Serial()
 ser.baudrate= 256000
-ser.port = 'COM2'
+ser.port = 'COM6'
 # ser.timeout = 20
 ser.open()
 

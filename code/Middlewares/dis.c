@@ -25,6 +25,10 @@
 #define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
 #define FFT_WORD_CHUNKS       SG_WORD_CHUNKS
 #define SG_HALF_LEN           SG_LEN / 2
+#define FS                    2000000.0f
+#define F_STEP                FS / ((float32_t)SG_LEN)
+#define F0                    56710000000.0f
+#define LAMBDA                299792458.0f / F0
 
 enum cmd {
     CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
@@ -50,6 +54,7 @@ union {
 
 struct {
     uint32_t cmd;
+    float32_t v_max;
     uint16_t crc;
 } tx_buf;
 
@@ -75,7 +80,15 @@ static volatile enum {
     ADC_STATE_ERROR = 3,
 } adc_state = ADC_STATE_IDLE;
 
+static void fft_dopp_calc()
 {
+    array_ui16_to_cmplxf32(adc_data, fft, SG_LEN);
+    cmplx_fft_calc(fft);
+    arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
+    float32_t fft_max = 0.0f;
+    uint32_t i_max = 0;
+    arm_max_f32(fft_mag_sq, SG_HALF_LEN, &fft_max, &i_max);
+    tx_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
 }
 
 static void crc_check()
@@ -109,15 +122,13 @@ void dis_init()
 
 void dis_work()
 {
-    switch (adc_state)
-    {
+    switch (adc_state) {
     case ADC_STATE_RDY:
-        array_i16_to_cmplxf32(adc_data, fft, SG_LEN);
-        cmplx_fft_calc(fft);
-        arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
+        fft_dopp_calc();
         adc_state = ADC_STATE_IDLE;
-        uart_state = UART_STATE_SEND_FFT;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN);
+        tx_buf.cmd = CMD_SEND_RES;
+        uart_state = UART_STATE_SEND_CRC;
+        uart_dma_send(&tx_buf.cmd, CMD_LEN+RES_LEN);
         break;
     default:
         break;
@@ -145,7 +156,9 @@ void cmd_work()
         tim_on();
     } break;
     case CMD_SEND_RES: {
-        // TODO
+        uart_state = UART_STATE_SEND_CRC;
+        uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
+        crc_calc((uint8_t *)&cmd, CMD_LEN + RES_LEN);
     } break;
     case CMD_SEND_FFT: {
         uart_state = UART_STATE_SEND_FFT;

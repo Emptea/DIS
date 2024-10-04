@@ -10,12 +10,8 @@ f = Fs/sg_len*(0:(sg_len/2-1));
 
 write(s, cmd_conv, 'char')
 cmd = read(s, 1, 'uint32');
-fft_rcv = read(s,32768,'single');
-fft_re  = fft_rcv(1:2:sg_len);
-fft_im = fft_rcv (2:2:sg_len);
-S = abs(complex(fft_re, fft_im));
+v_max = read(s, 1, 'single')
 crc = read(s, 1, 'uint16');
-figure; plot(f, mag2db(S))
 
 write(s, cmd_send_sg, 'char')
 cmd = read(s, 1, 'uint32');

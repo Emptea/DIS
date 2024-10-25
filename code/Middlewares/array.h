@@ -32,11 +32,10 @@ float32_t array_sum(float32_t *arr, uint32_t len);
 
 inline static void array_i16_to_cmplx_arrf32(int16_t *src, float32_t *dst, uint32_t len)
 {
-    for (uint32_t tmp_index = 0; tmp_index < len; tmp_index++)
-	{
-		dst[2*tmp_index] = (float32_t) src[tmp_index];//(float32_t)65536.0;
-		dst[2*tmp_index+1] = 0;
-	}		
+    for (uint32_t tmp_index = 0; tmp_index < len; tmp_index++) {
+        dst[2 * tmp_index] = (float32_t)src[tmp_index]; //(float32_t)65536.0;
+        dst[2 * tmp_index + 1] = 0;
+    }
 }
 
 inline static void array_ui16_to_cmplxf32(uint16_t *src, cmplx64_t *dst, uint32_t len)
@@ -51,6 +50,19 @@ inline static void array_i16_to_cmplxf32(int16_t *src, cmplx64_t *dst, uint32_t 
     do {
         *dst++ = *src++;
     } while (--len);
+}
+
+inline static void array_cpy_cmplx64(
+    const void *src,
+    void *dst,
+    uint32_t size)
+{
+    const cmplx64_t *psrc = src;
+    cmplx64_t *pdst = dst;
+    size /= 8;
+    do {
+        *pdst++ = *psrc++;
+    } while (--size);
 }
 
 inline static void array_cpy_u32(

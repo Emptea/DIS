@@ -20,7 +20,7 @@
                 "VDD_VALUE=3300"
             ],
             "cStandard": "gnu23",
-            "compilerPath": "${env:GCC_PATH}/arm-none-eabi-gcc.exe -std=c2x",
+            "compilerPath": "${env:GCC_ARM_NONE_EABI_PATH}/arm-none-eabi-gcc.exe -std=c2x",
             "intelliSenseMode": "gcc-arm"
         }
     ],

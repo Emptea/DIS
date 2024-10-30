@@ -8,6 +8,10 @@
 #include "cmplx.h"
 #include "arm_math.h"
 #include "array.h"
+#include "burg.h"
+
+#define BURG
+// #define FFT
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
@@ -59,8 +63,9 @@ struct {
 } tx_buf;
 
 uint16_t adc_data[SG_LEN] = {0};
-static cmplx64_t fft[SG_LEN] = {0};
-static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
+static cmplx64_t x[SG_LEN] = {0};
+static cmplx64_t pxx[SG_LEN] = {0};
+static float32_t pxx_mag_sq[SG_HALF_LEN] = {0};
 
 static volatile enum {
     UART_STATE_RCV = 0,
@@ -80,14 +85,20 @@ static volatile enum {
     ADC_STATE_ERROR = 3,
 } adc_state = ADC_STATE_IDLE;
 
-static void fft_dopp_calc()
+static void dopp_calc()
 {
-    array_ui16_to_cmplxf32(adc_data, fft, SG_LEN);
-    cmplx_fft_calc(fft);
-    arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
-    float32_t fft_max = 0.0f;
+    array_ui16_to_cmplxf32(adc_data, x, SG_LEN);
+#ifdef FFT
+    cmplx_fft_calc(x);
+    arm_cmplx_mag_f32((float32_t *)x, pxx_mag_sq, SG_HALF_LEN);
+#else
+    burg(x, pxx, SG_LEN);
+    arm_cmplx_mag_f32((float32_t *)pxx, pxx_mag_sq, SG_HALF_LEN);
+#endif
+    
+    float32_t pxx_max = 0.0f;
     uint32_t i_max = 0;
-    arm_max_f32(fft_mag_sq, SG_HALF_LEN, &fft_max, &i_max);
+    arm_max_f32(pxx_mag_sq, SG_HALF_LEN, &pxx_max, &i_max);
     tx_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
 }
 
@@ -124,11 +135,11 @@ void dis_work()
 {
     switch (adc_state) {
     case ADC_STATE_RDY:
-        fft_dopp_calc();
+        dopp_calc();
         adc_state = ADC_STATE_IDLE;
         tx_buf.cmd = CMD_SEND_RES;
         uart_state = UART_STATE_SEND_CRC;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN+RES_LEN);
+        uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
         break;
     default:
         break;
@@ -187,8 +198,8 @@ void uart_send_dma_callback()
         break;
     }
     case UART_STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&fft[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&fft[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
+        tx_buf.crc = crc_calc((uint8_t *)&x[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&x[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == FFT_WORD_CHUNKS) {
             uart_state = UART_STATE_SEND_CRC;
         };

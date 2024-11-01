@@ -16,23 +16,23 @@
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_LEN                (uint32_t)32768
+#define SG_LEN                ((uint32_t)128)
 #define CMD_LEN               4
 #define RES_LEN               4
-#define SG_ADC_CHUNK_LEN      (uint32_t)32768
-#define SG_CHUNK_BYTE_LEN     (uint32_t)32768
-#define SG_ADC_CHUNKS         SG_LEN / SG_ADC_CHUNK_LEN
+#define SG_ADC_CHUNK_LEN      ((uint32_t)SG_LEN)
+#define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2)
+#define SG_ADC_CHUNKS         (SG_LEN / SG_ADC_CHUNK_LEN)
 
-#define SG_CHUNK_HALFWORD_LEN SG_CHUNK_BYTE_LEN / 2
-#define SG_CHUNK_WORD_LEN     SG_CHUNK_BYTE_LEN / 4
-#define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
-#define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
+#define SG_CHUNK_HALFWORD_LEN (SG_CHUNK_BYTE_LEN / 2)
+#define SG_CHUNK_WORD_LEN     (SG_CHUNK_BYTE_LEN / 4)
+#define SG_HALFWORD_CHUNKS    (2 * SG_LEN / SG_CHUNK_BYTE_LEN)
+#define SG_WORD_CHUNKS        (4 * SG_LEN / SG_CHUNK_BYTE_LEN)
 #define FFT_WORD_CHUNKS       SG_WORD_CHUNKS
-#define SG_HALF_LEN           SG_LEN / 2
+#define SG_HALF_LEN           (SG_LEN / 2)
 #define FS                    2000000.0f
-#define F_STEP                FS / ((float32_t)SG_LEN)
+#define F_STEP                (FS / ((float32_t)SG_LEN))
 #define F0                    56710000000.0f
-#define LAMBDA                299792458.0f / F0
+#define LAMBDA                (299792458.0f / F0)
 
 enum cmd {
     CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
@@ -95,7 +95,7 @@ static void dopp_calc()
     burg(x, pxx, SG_LEN);
     arm_cmplx_mag_f32((float32_t *)pxx, pxx_mag_sq, SG_HALF_LEN);
 #endif
-    
+
     float32_t pxx_max = 0.0f;
     uint32_t i_max = 0;
     arm_max_f32(pxx_mag_sq, SG_HALF_LEN, &pxx_max, &i_max);
@@ -121,7 +121,7 @@ void dis_init()
 {
     uart_timeout_config();
 
-    adc_dma_config(&adc_data, SG_CHUNK_BYTE_LEN);
+    adc_dma_config(&adc_data, SG_LEN);
     uart_dma_tx_config(&tx_buf, CMD_LEN + 2);
     uart_dma_rx_config(&rx_buf, CMD_LEN + 2);
 
@@ -163,7 +163,7 @@ void cmd_work()
     } break;
     case CMD_START_CONV: {
         adc_state = ADC_STATE_CONV;
-        adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
+        adc_dma_start(&adc_data, SG_LEN);
         tim_on();
     } break;
     case CMD_SEND_RES: {

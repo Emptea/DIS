@@ -32,6 +32,7 @@ void uart_dma_rx_config(void *buf, uint32_t size)
         (uint32_t)buf,
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_1));
     LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, size);
+    LL_DMA_EnableBufferableTransfer(DMA1, LL_DMA_STREAM_1);
 
     LL_DMA_ClearFlag_TE1(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_1);
@@ -51,12 +52,14 @@ void uart_dma_tx_config(void *buf, uint32_t size)
         LL_USART_DMA_GetRegAddr(USART1, LL_USART_DMA_REG_DATA_TRANSMIT),
         LL_DMA_GetDataTransferDirection(DMA1, LL_DMA_STREAM_2));
     LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_2, size);
+    LL_DMA_EnableBufferableTransfer(DMA1, LL_DMA_STREAM_2);
 
     LL_DMA_ClearFlag_TE2(DMA1);
     LL_DMA_EnableIT_TE(DMA1, LL_DMA_STREAM_2);
     LL_DMA_ClearFlag_TC2(DMA1);
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_2);
 }
+
 
 void uart_timeout_config()
 {

@@ -1,17 +1,18 @@
 #include "array.h"
+#include "burg.h"
 
 #define ORD 64
 uint32_t var = 0;
 
-void burg(cmplx64_t *x, cmplx64_t *res, uint32_t len)
+void burg(const cmplx64_t *x, cmplx64_t *res, const uint32_t len)
 {
     cmplx64_t f[len], b[len];
+    array_cpy_cmplx64(x, f, len);
+    array_cpy_cmplx64(x, b, len);
+    
     // init Ak & A0
     cmplx64_t Ak[ORD] = {0.0};
     Ak[0] = (cmplx64_t)1.0;
-
-    array_cpy_cmplx64(x, f, len);
-    array_cpy_cmplx64(x, b, len);
 
     cmplx64_t Dk = {0.0};
     for (uint32_t j = 0; j < len; j++) {
@@ -38,8 +39,9 @@ void burg(cmplx64_t *x, cmplx64_t *res, uint32_t len)
             b[i] = b_i + mu * f[i + k + 1];
             f[i + k + 1] = f[i + k + 1] + mu * b_i;
         }
-
-        Dk = ((cmplx64_t)1.0 - mu * mu) * Dk - f[k + 1] * f[k + 1] - b[len - k - 1] * b[len - k - 1];
+        cmplx64_t f_sq = f[k + 1] * f[k + 1];
+        cmplx64_t b_sq = b[len - k - 1] * b[len - k - 1];
+        Dk = ((cmplx64_t)1.0 - mu * mu) * Dk -  f_sq - b_sq;
     }
 
     for (uint32_t i = ORD; i < len; i++) {

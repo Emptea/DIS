@@ -57,9 +57,16 @@ inline static void array_cpy_cmplx64(
     void *dst,
     uint32_t size)
 {
-    const cmplx64_t *psrc = src;
-    cmplx64_t *pdst = dst;
-    size /= 8;
+//    const cmplx64_t *psrc = src;
+//    cmplx64_t *pdst = dst;
+//    size = size / 8;
+//    do {
+//        *pdst++ = *psrc++;
+//    } while (--size);
+    
+    const uint32_t *psrc = src;
+    uint32_t *pdst = dst;
+    size = size / 4;
     do {
         *pdst++ = *psrc++;
     } while (--size);

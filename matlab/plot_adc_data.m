@@ -1,6 +1,6 @@
 close all 
-
-s = serialport("COM6",256000,"Timeout",10);
+clear s
+s = serialport("COM2",256000,"Timeout",10);
 sg_len = 32768;
 Fs = 2e6;
 cmd_send_sg = [0x39 0x64 0x6d 0x63 0x21 0xde];

@@ -75,7 +75,7 @@ int main(void)
   /* Configure the peripherals common clocks */
   PeriphCommonClock_Config();
 
-
+  *((__IO uint32_t*) 0x51008108) = 0x1; //Change  the switch matrix read issuing capability to 1 (Errata BUG fix)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();

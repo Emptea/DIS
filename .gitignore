@@ -2,6 +2,7 @@
 !/MDK-ARM/*.uvprojx
 !/MDK-ARM/*.uvoptx
 !/MDK-ARM/*.s
+!/MDK-ARM/**/*.sct
 build
 /cube/*
 !/cube/*.ioc

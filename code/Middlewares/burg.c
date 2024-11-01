@@ -3,12 +3,13 @@
 
 #define ORD 64
 uint32_t var = 0;
+cmplx64_t f[SG_LEN] = {0};
+cmplx64_t b[SG_LEN] = {0};
 
 void burg(const cmplx64_t *x, cmplx64_t *res, const uint32_t len)
 {
-    cmplx64_t f[len], b[len];
-    array_cpy_cmplx64(x, f, len);
-    array_cpy_cmplx64(x, b, len);
+    array_cmplxf32_to_cmplxf32(x, f, len);
+    array_cmplxf32_to_cmplxf32(x, b, len);
     
     // init Ak & A0
     cmplx64_t Ak[ORD] = {0.0};
@@ -44,10 +45,10 @@ void burg(const cmplx64_t *x, cmplx64_t *res, const uint32_t len)
         Dk = ((cmplx64_t)1.0 - mu * mu) * Dk -  f_sq - b_sq;
     }
 
-    for (uint32_t i = ORD; i < len; i++) {
-        res[i] = (cmplx64_t) 0.0;
-        for (uint32_t j = 0; j < ORD; j++) {
-            res[i] -= Ak[j] * x[i - 1 - j];
-        }
-    }
+//    for (uint32_t i = ORD; i < len; i++) {
+//        res[i] = (cmplx64_t) 0.0;
+//        for (uint32_t j = 0; j < ORD; j++) {
+//            res[i] -= Ak[j] * x[i - 1 - j];
+//        }
+//    }
 }

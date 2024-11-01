@@ -8,17 +8,19 @@
 #include "cmplx.h"
 #include "arm_math.h"
 #include "array.h"
+#include "burg.h"
 
-#define ALIGN_32BYTES __attribute__((aligned (32)))
+#define BURG
+
+#define ALIGN_32BYTES __attribute__((aligned(32)))
 
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_LEN                ((uint32_t)32768 / 2)
-#define CMD_LEN               4
-#define RES_LEN               4
-#define SG_ADC_CHUNK_LEN      ((uint32_t)SG_LEN)
-#define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2))
+#define CMD_LEN          4
+#define RES_LEN          4
+#define SG_ADC_CHUNK_LEN ((uint32_t)SG_LEN)
+#define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2)
 #define SG_ADC_CHUNKS         (SG_LEN / SG_ADC_CHUNK_LEN)
 
 #define SG_CHUNK_HALFWORD_LEN (SG_CHUNK_BYTE_LEN / 2)
@@ -61,7 +63,8 @@ ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
 } tx_buf;
 
 ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) uint16_t adc_data[SG_LEN] = {0};
-ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t fft[SG_LEN] = {0};
+ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t x[SG_LEN] = {0};
+ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t pxx[SG_LEN] = {0};
 static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
 
 static volatile enum {
@@ -84,11 +87,17 @@ static volatile enum {
 
 static void fft_dopp_calc()
 {
-    array_ui16_to_cmplxf32(adc_data, fft, SG_LEN);
-    cmplx_fft_calc(fft);
-    for (uint32_t i = 0; i < SG_LEN; i++)
-        fft[i] *= fft[i] * i;
-    arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
+    array_ui16_to_cmplxf32(adc_data, x, SG_LEN);
+#ifdef BURG
+    burg(x, pxx, SG_LEN);
+    arm_cmplx_mag_f32((float32_t *)pxx, fft_mag_sq, SG_HALF_LEN);
+#else
+    cmplx_fft_calc(x);
+    for (uint32_t i = 0; i < SG_LEN; i++) {
+        x[i] *= x[i] * i;
+    }
+    arm_cmplx_mag_f32((float32_t *)x, fft_mag_sq, SG_HALF_LEN);
+#endif
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
     arm_max_f32(fft_mag_sq, SG_HALF_LEN, &fft_max, &i_max);
@@ -132,7 +141,7 @@ void dis_work()
         adc_state = ADC_STATE_IDLE;
         tx_buf.cmd = CMD_SEND_RES;
         uart_state = UART_STATE_SEND_CRC;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN+RES_LEN);
+        uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
         break;
     default:
         break;
@@ -191,8 +200,8 @@ void uart_send_dma_callback()
         break;
     }
     case UART_STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&fft[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&fft[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
+        tx_buf.crc = crc_calc((uint8_t *)&x[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
+        uart_dma_send(&x[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
         if (cnt == FFT_WORD_CHUNKS) {
             uart_state = UART_STATE_SEND_CRC;
         };

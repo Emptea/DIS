@@ -39,11 +39,31 @@ inline static void array_i16_to_cmplx_arrf32(int16_t *src, float32_t *dst, uint3
 	}		
 }
 
+inline static void array_cpy_cmplx64(
+    const void *src,
+    void *dst,
+    uint32_t size)
+{
+    const cmplx64_t *psrc = src;
+    cmplx64_t *pdst = dst;
+    size = size / 8;
+    do {
+        *pdst++ = *psrc++;
+    } while (--size);
+}
+
 inline static void array_ui16_to_cmplxf32(uint16_t *src, cmplx64_t *dst, uint32_t len)
 {
     do {
         *dst++ = *src++;
     } while (--len);
+}
+
+inline static void array_cmplxf32_to_cmplxf32(const cmplx64_t *src, cmplx64_t *dst, uint32_t len)
+{
+    for (uint32_t i = 0; i < len; i++){
+    dst[i] = src[i];
+    }
 }
 
 inline static void array_i16_to_cmplxf32(int16_t *src, cmplx64_t *dst, uint32_t len)

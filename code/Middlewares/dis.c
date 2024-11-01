@@ -9,6 +9,8 @@
 #include "arm_math.h"
 #include "array.h"
 
+#define ALIGN_32BYTES __attribute__((aligned (32)))
+
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
@@ -43,7 +45,7 @@ enum cmd {
 };
 static enum cmd cmd = CMD_NONE;
 
-union {
+ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
     struct {
         uint32_t cmd;
         uint16_t crc;
@@ -52,13 +54,13 @@ union {
     uint8_t bytes[CMD_LEN + 2];
 } rx_buf;
 
-struct {
+ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
     uint32_t cmd;
     float32_t v_max;
     uint16_t crc;
 } tx_buf;
 
-uint16_t adc_data[SG_LEN] = {0};
+ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) uint16_t adc_data[SG_LEN] = {0};
 static cmplx64_t fft[SG_LEN] = {0};
 static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
 

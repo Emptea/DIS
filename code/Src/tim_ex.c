@@ -8,5 +8,5 @@ void tim_on()
 void tim_off()
 {
     LL_TIM_DisableCounter(TIM3);
-    LL_TIM_GenerateEvent_UPDATE(TIM3);
+    LL_TIM_SetCounter(TIM3, 0);
 }

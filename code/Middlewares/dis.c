@@ -14,23 +14,23 @@
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define SG_LEN                (uint32_t)32768
+#define SG_LEN                ((uint32_t)32768 / 2)
 #define CMD_LEN               4
 #define RES_LEN               4
-#define SG_ADC_CHUNK_LEN      (uint32_t)32768
-#define SG_CHUNK_BYTE_LEN     (uint32_t)32768
-#define SG_ADC_CHUNKS         SG_LEN / SG_ADC_CHUNK_LEN
+#define SG_ADC_CHUNK_LEN      ((uint32_t)SG_LEN)
+#define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2))
+#define SG_ADC_CHUNKS         (SG_LEN / SG_ADC_CHUNK_LEN)
 
-#define SG_CHUNK_HALFWORD_LEN SG_CHUNK_BYTE_LEN / 2
-#define SG_CHUNK_WORD_LEN     SG_CHUNK_BYTE_LEN / 4
-#define SG_HALFWORD_CHUNKS    2 * SG_LEN / SG_CHUNK_BYTE_LEN
-#define SG_WORD_CHUNKS        4 * SG_LEN / SG_CHUNK_BYTE_LEN
+#define SG_CHUNK_HALFWORD_LEN (SG_CHUNK_BYTE_LEN / 2)
+#define SG_CHUNK_WORD_LEN     (SG_CHUNK_BYTE_LEN / 4)
+#define SG_HALFWORD_CHUNKS    ((2 * SG_LEN) / SG_CHUNK_BYTE_LEN)
+#define SG_WORD_CHUNKS        ((4 * SG_LEN) / SG_CHUNK_BYTE_LEN)
 #define FFT_WORD_CHUNKS       SG_WORD_CHUNKS
-#define SG_HALF_LEN           SG_LEN / 2
+#define SG_HALF_LEN           (SG_LEN / 2)
 #define FS                    2000000.0f
-#define F_STEP                FS / ((float32_t)SG_LEN)
+#define F_STEP                (FS / ((float32_t)SG_LEN))
 #define F0                    56710000000.0f
-#define LAMBDA                299792458.0f / F0
+#define LAMBDA                (299792458.0f / F0)
 
 enum cmd {
     CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
@@ -61,7 +61,7 @@ ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
 } tx_buf;
 
 ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) uint16_t adc_data[SG_LEN] = {0};
-static cmplx64_t fft[SG_LEN] = {0};
+ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t fft[SG_LEN] = {0};
 static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
 
 static volatile enum {
@@ -86,6 +86,8 @@ static void fft_dopp_calc()
 {
     array_ui16_to_cmplxf32(adc_data, fft, SG_LEN);
     cmplx_fft_calc(fft);
+    for (uint32_t i = 0; i < SG_LEN; i++)
+        fft[i] *= fft[i] * i;
     arm_cmplx_mag_f32((float32_t *)fft, fft_mag_sq, SG_HALF_LEN);
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;

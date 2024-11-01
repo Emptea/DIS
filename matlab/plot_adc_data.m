@@ -1,7 +1,7 @@
 close all 
 
-s = serialport("COM6",256000,"Timeout",10);
-sg_len = 32768;
+s = serialport("COM2",256000,"Timeout",10);
+sg_len = 32768 / 2;
 Fs = 2e6;
 cmd_send_sg = [0x39 0x64 0x6d 0x63 0x21 0xde];
 cmd_conv = [0x33 0x64 0x6d 0x63 0x22 0x06];

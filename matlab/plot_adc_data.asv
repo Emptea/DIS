@@ -1,7 +1,7 @@
 close all 
 
-s = serialport("COM6",256000,"Timeout",10);
-sg_len = 32768;
+s = serialport("COM2",256000,"Timeout",10);
+sg_len = 32768 / 2;
 Fs = 2e6;
 cmd_send_sg = [0x39 0x64 0x6d 0x63 0x21 0xde];
 cmd_conv = [0x33 0x64 0x6d 0x63 0x22 0x06];
@@ -10,22 +10,18 @@ f = Fs/sg_len*(0:(sg_len/2-1));
 
 write(s, cmd_conv, 'char')
 cmd = read(s, 1, 'uint32');
-fft_rcv = read(s,sg_len,'single');
-fft_re  = fft_rcv(1:2:sg_len);
-fft_im = fft_rcv (2:2:sg_len);
-S = abs(complex(fft_re, fft_im));
+v_max = read(s, 1, 'single')
 crc = read(s, 1, 'uint16');
-figure; plot(f, mag2db(S))
 
 write(s, cmd_send_sg, 'char')
 cmd = read(s, 1, 'uint32');
-data = read(s,sg_len,"uint16");
+data = read(s,32768,"uint16");
 crc = read(s, 1, 'uint16');
 volt = data/double(intmax("uint16"))*vref;
 figure; plot(volt)
 
 Y = fft(data, sg_len);
-P2 = abs(Y/sg_len);
+P2 = abs(Y);
 P1 = P2(1:sg_len/2);
 P1(2:end-1) = 2*P1(2:end-1);
 

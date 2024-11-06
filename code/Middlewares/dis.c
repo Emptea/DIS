@@ -10,7 +10,7 @@
 #include "array.h"
 #include "burg.h"
 
-#define BURG
+//#define BURG
 
 #define ALIGN_32BYTES __attribute__((aligned(32)))
 
@@ -19,19 +19,16 @@
 
 #define TIM_DLY_MAX           1000
 
+#define SG_LEN_MIN            1024
+#define SG_LEN_MAX            32768
+
 #define CMD_LEN               4
 #define ARG_LEN               4
 #define RES_LEN               4
-#define SG_ADC_CHUNK_LEN      ((uint32_t)SG_LEN)
-#define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2)
-#define SG_ADC_CHUNKS         (SG_LEN / SG_ADC_CHUNK_LEN)
 
-#define SG_CHUNK_HALFWORD_LEN (SG_CHUNK_BYTE_LEN / 2)
-#define SG_CHUNK_WORD_LEN     (SG_CHUNK_BYTE_LEN / 4)
-#define SG_HALFWORD_CHUNKS    ((2 * SG_LEN) / SG_CHUNK_BYTE_LEN)
-#define SG_WORD_CHUNKS        ((4 * SG_LEN) / SG_CHUNK_BYTE_LEN)
-#define FFT_WORD_CHUNKS       SG_WORD_CHUNKS
-#define SG_HALF_LEN           (SG_LEN / 2)
+#define SG_ADC_CHUNK_LEN_MAX  SG_LEN_MAX
+#define SG_CHUNK_BYTE_LEN_MAX ((uint32_t)SG_LEN_MAX * 2)
+
 #define FS                    2000000.0f
 #define F_STEP                (FS / ((float32_t)SG_LEN))
 #define F0                    56710000000.0f
@@ -69,10 +66,14 @@ ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
     uint16_t crc;
 } tx_buf;
 
-ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) uint16_t adc_data[SG_LEN] = {0};
-ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t x[SG_LEN] = {0};
-ALIGN_32BYTES __attribute__((section(".res"))) static cmplx64_t pxx[SG_LEN] = {0};
-static float32_t fft_mag_sq[SG_HALF_LEN] = {0};
+ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
+    uint16_t sg[SG_LEN_MAX];
+    uint32_t len;
+} adc_data = { .sg = {0}, .len  = SG_LEN_MAX };
+
+static cmplx64_t x[SG_LEN_MAX] = {0};
+static cmplx64_t pxx[SG_LEN_MAX] = {0};
+ALIGN_32BYTES __attribute__((section(".res"))) static float32_t fft_mag_sq[SG_LEN_MAX / 2] = {0};
 
 static volatile enum {
     UART_STATE_RCV = 0,
@@ -94,20 +95,21 @@ static volatile enum {
 
 static void fft_dopp_calc()
 {
-    array_ui16_to_cmplxf32(adc_data, x, SG_LEN);
+    uint32_t halflen = adc_data.len / 2;
+    array_ui16_to_cmplxf32(adc_data.sg, x, adc_data.len);
 #ifdef BURG
     burg(x, pxx, SG_LEN);
-    arm_cmplx_mag_f32((float32_t *)pxx, fft_mag_sq, SG_HALF_LEN);
+    arm_cmplx_mag_f32((float32_t *)pxx, fft_mag_sq, halflen);
 #else
     cmplx_fft_calc(x);
-    for (uint32_t i = 0; i < SG_LEN; i++) {
+    for (uint32_t i = 0; i < adc_data.len; i++) {
         x[i] *= x[i] * i;
     }
-    arm_cmplx_mag_f32((float32_t *)x, fft_mag_sq, SG_HALF_LEN);
+    arm_cmplx_mag_f32((float32_t *)x, fft_mag_sq, halflen);
 #endif
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
-    arm_max_f32(fft_mag_sq, SG_HALF_LEN, &fft_max, &i_max);
+    arm_max_f32(fft_mag_sq, halflen, &fft_max, &i_max);
     tx_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
 }
 
@@ -130,7 +132,7 @@ void dis_init()
 {
     uart_timeout_config();
 
-    adc_dma_config(&adc_data, SG_CHUNK_BYTE_LEN);
+    adc_dma_config(&adc_data, adc_data.len);
     uart_dma_tx_config(&tx_buf, CMD_LEN + RES_LEN + 2);
     uart_dma_rx_config(&rx_buf, CMD_LEN + ARG_LEN + 2);
 
@@ -178,9 +180,17 @@ void cmd_work()
         }
         dis_echo();
     } break;
+    case CMD_SET_SG_LEN: {
+        if (rx_buf.arg > SG_LEN_MIN && rx_buf.arg < SG_LEN_MAX) {
+            adc_data.len = rx_buf.arg;
+        } else {
+            rx_buf.arg = 0xFF;
+        }
+        dis_echo();
+    } break;
     case CMD_START_CONV: {
         adc_state = ADC_STATE_CONV;
-        adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
+        adc_dma_start(&adc_data, adc_data.len);
         tim_dly_on();
     } break;
     case CMD_SEND_RES: {
@@ -208,43 +218,33 @@ void cmd_work()
 
 void uart_send_dma_callback()
 {
-    static uint32_t cnt = 0;
     switch (uart_state) {
     case UART_STATE_ERROR: {
         uart_state = UART_STATE_RCV;
-        break;
-    }
+    } break;
     case UART_STATE_SEND_FFT: {
-        tx_buf.crc = crc_calc((uint8_t *)&x[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&x[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
-        if (cnt == FFT_WORD_CHUNKS) {
-            uart_state = UART_STATE_SEND_CRC;
-        };
-        break;
-    }
+        // tx_buf.crc = crc_calc((uint8_t *)&x[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
+        // uart_dma_send(&x[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
+        // if (cnt == FFT_WORD_CHUNKS) {
+        //     uart_state = UART_STATE_SEND_CRC;
+        // };
+    } break;
     case UART_STATE_SEND_SG: {
-        tx_buf.crc = crc_calc((uint8_t *)&adc_data[SG_CHUNK_HALFWORD_LEN * cnt], SG_CHUNK_BYTE_LEN);
-        uart_dma_send(&adc_data[SG_CHUNK_HALFWORD_LEN * (cnt++)], SG_CHUNK_BYTE_LEN);
-        if (cnt == SG_HALFWORD_CHUNKS) {
-            uart_state = UART_STATE_SEND_CRC;
-        };
-        break;
-    }
+        tx_buf.crc = crc_calc((uint8_t *)&adc_data, adc_data.len);
+        uart_dma_send(&adc_data, adc_data.len);
+        uart_state = UART_STATE_SEND_CRC;
+    } break;
     case UART_STATE_SEND_CRC: {
         uart_dma_send(&tx_buf.crc, 2);
         LL_CRC_SetInitialData(CRC, 0xFFFF);
-        cnt = 0;
         uart_state = UART_STATE_RCV;
-        break;
-    }
+    } break;
     case UART_STATE_ECHO: {
         uart_state = UART_STATE_RCV;
-        break;
-    }
+    } break;
     default: {
         uart_state = UART_STATE_RCV;
-        break;
-    }
+    } break;
     }
 }
 
@@ -271,7 +271,7 @@ void EXTI0_IRQHandler(void)
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
         tx_buf.cmd = CMD_SEND_SG;
         crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
-        adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
+        adc_dma_start(&adc_data, adc_data.len);
         adc_state = ADC_STATE_CONV;
         tim_dly_on();
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
@@ -280,17 +280,10 @@ void EXTI0_IRQHandler(void)
 
 void adc_dma_callback()
 {
-    static int cnt = 0;
-    cnt++;
-    if (cnt < SG_ADC_CHUNKS) {
-        adc_dma_start(&adc_data[SG_CHUNK_BYTE_LEN * cnt], SG_CHUNK_BYTE_LEN);
-    } else {
-        tim_adc_off();
-        adc_state = ADC_STATE_RDY;
-        // uart_state = UART_STATE_SEND_SG;
-        // uart_dma_send(&tx_buf.cmd, CMD_LEN);
-        cnt = 0;
-    }
+    tim_adc_off();
+    adc_state = ADC_STATE_RDY;
+    // uart_state = UART_STATE_SEND_SG;
+    // uart_dma_send(&tx_buf.cmd, CMD_LEN);
 }
 
 /**

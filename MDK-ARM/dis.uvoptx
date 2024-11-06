@@ -168,22 +168,6 @@
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>146</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134229802</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\code\Middlewares\dis.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Middlewares/dis.c\146</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
           <LineNumber>158</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>6</Address>
@@ -196,38 +180,6 @@
           <Filename>C:\Users\Veronika\AppData\Local\Arm\Packs\ARM\CMSIS-DSP\1.14.4\Source\StatisticsFunctions\arm_entropy_f32.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\dis\arm_entropy_f32.c\158</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>278</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134218908</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\code\Middlewares\dis.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Middlewares/dis.c\278</Expression>
-        </Bp>
-        <Bp>
-          <Number>4</Number>
-          <Type>0</Type>
-          <LineNumber>276</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134218890</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\code\Middlewares\dis.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Middlewares/dis.c\276</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow1>
@@ -265,6 +217,11 @@
           <count>6</count>
           <WinNumber>1</WinNumber>
           <ItemText>cnt</ItemText>
+        </Ww>
+        <Ww>
+          <count>7</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>rx_buf</ItemText>
         </Ww>
       </WatchWindow1>
       <Tracepoint>

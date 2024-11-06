@@ -5,6 +5,7 @@
 uint32_t var = 0;
 cmplx64_t f[SG_LEN] = {0};
 cmplx64_t b[SG_LEN] = {0};
+cmplx64_t Ak[ORD] = {0.0};
 
 void burg(const cmplx64_t *x, cmplx64_t *res, const uint32_t len)
 {
@@ -12,7 +13,6 @@ void burg(const cmplx64_t *x, cmplx64_t *res, const uint32_t len)
     array_cmplxf32_to_cmplxf32(x, b, len);
     
     // init Ak & A0
-    cmplx64_t Ak[ORD] = {0.0};
     Ak[0] = (cmplx64_t)1.0;
 
     cmplx64_t Dk = {0.0};

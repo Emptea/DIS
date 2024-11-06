@@ -9,27 +9,19 @@ t = (0:N - 1)' / fs;
 signal = 1 * cos(2 * pi * fd * t) .* (1 - 0.5 * cos(2 * pi * fd / 10 * t));
 noise = 1 * randn(N, 1);
 x = signal + noise;
-
-[A,E,K] = arburg(x, 32);
-y1 = filter(1,A,x);
-[amp6 , f6] = sp_fft(y1, fs, 1);
-figure; plot(f6, amp6)
-Ak = sp_burg_cur(x, 32, fs);
-y2 = filter(1,Ak,x);
-[amp4 , f4] = sp_fft(y2, fs, 1);
-
-% [amp1, f1] = sp_fft(x, fs, 4);
-% [amp2, f2] = sp_class(x, fs, 4);
-% [amp3, f3] = sp_burg(x, 32, fs);
+[amp1, f1] = sp_fft(x, fs, 4);
+[amp2, f2] = sp_class(x, fs, 4);
+[amp3, f3] = sp_burg(x, 32, fs);
+[amp4 , f4] = sp_burg_cur(x, 32, fs);
 % [amp5, f5] = sp_burg_py(x, 2048, fs);
 subplot(2, 1, 1)
 plot(n, x)
 title('Исходный ряд')
 subplot(2, 1, 2)
 hold on
-% plot(f1, amp1);
+plot(f1, amp1);
 % plot(f2, amp2);
-% plot(f3, amp3);
+plot(f3, amp3);
 plot(f4, amp4);
 % plot(f5, amp5);
 hold off
@@ -102,7 +94,7 @@ function [amp, f] = sp_burg(x, pp, fs)
 end
 
 % Работает
-function Ak = sp_burg_cur(x, ORD, fs)
+function [amp , f] = sp_burg_cur(x, ORD, fs)
     len = length(x);
     ef = x;
     eb = x;
@@ -139,6 +131,8 @@ function Ak = sp_burg_cur(x, ORD, fs)
         b_sq = eb(len - k) * eb(len - k);
         Dk = (1 - mu * mu) * Dk - f_sq - b_sq;
     end
+    y = filter(1,Ak,x);
+    [amp , f] = sp_fft(y, fs, 1);
 end
 
 % это из библиотеки py вроде, совпадает c  sp_burg

@@ -10,20 +10,22 @@ crc16 = crcmod.mkCrcFun(0x18005, rev=True, initCrc=0xFFFF, xorOut=0x0000)
 sz_cmd = 4
 sz_sg = 128000
 
-cmd_pwr_on = bytearray('cmd1', 'utf-8')
-cmd_pwr_off = bytearray('cmd2', 'utf-8')
-cmd_start_exti = bytearray('cmd3', 'utf-8')
+cmd_pwr_on = bytearray('cmd0', 'utf-8')
+cmd_pwr_off = bytearray('cmd1', 'utf-8')
+cmd_start_exti = bytearray('cmd2', 'utf-8')
+cmd_set_tim = bytearray('cmd3', 'utf-8')
 cmd_start_conv = bytearray('cmd7', 'utf-8')
 cmd_send_sg = bytearray('cmd8', 'utf-8')
 cmd_send_sg = bytearray('cmd9', 'utf-8')
 
 ser = serial.Serial()
 ser.baudrate= 256000
-ser.port = 'COM6'
+ser.port = 'COM2'
 # ser.timeout = 20
 ser.open()
 
-def ask(ser, cmd):
+def ask(ser, cmd, arg):
+    cmd.extend(arg.to_bytes(4,'little'))
     cmd.extend(crc16(cmd).to_bytes(2,'little'))
     ser.write(cmd)
     print(' '.join(format(x, '02x') for x in cmd))
@@ -36,10 +38,10 @@ def plot(sg):
     # ax.plot(x, sg)
     plt.show()
 
-ask(ser, cmd_pwr_off[::-1])
-resp = ser.read(6)
+ask(ser, cmd_set_tim[::-1], 99999)
+resp = ser.read(10)
 print(' '.join(format(x, '02x') for x in resp))
-
+# ask(ser, cmd_start_exti[::-1], 0)
 # ask(ser, cmd_send_sg[::-1])
 # pack = bytearray(sz_cmd + 2*sz_sg - 1)
 # pack[0:(sz_cmd-1)]= ser.read(sz_cmd)

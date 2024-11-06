@@ -17,9 +17,12 @@
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define CMD_LEN          4
-#define RES_LEN          4
-#define SG_ADC_CHUNK_LEN ((uint32_t)SG_LEN)
+#define TIM_DLY_MAX           1000
+
+#define CMD_LEN               4
+#define ARG_LEN               4
+#define RES_LEN               4
+#define SG_ADC_CHUNK_LEN      ((uint32_t)SG_LEN)
 #define SG_CHUNK_BYTE_LEN     ((uint32_t)SG_LEN * 2)
 #define SG_ADC_CHUNKS         (SG_LEN / SG_ADC_CHUNK_LEN)
 
@@ -35,25 +38,29 @@
 #define LAMBDA                (299792458.0f / F0)
 
 enum cmd {
-    CMD_NONE = cmd2uint('c', 'm', 'd', '0'),
-    CMD_PWR_ON = cmd2uint('c', 'm', 'd', '1'),
-    CMD_PWR_OFF = cmd2uint('c', 'm', 'd', '2'),
-    CMD_EXTI_ON = cmd2uint('c', 'm', 'd', '3'),
+    CMD_PWR_ON = cmd2uint('c', 'm', 'd', '0'),
+    CMD_PWR_OFF = cmd2uint('c', 'm', 'd', '1'),
+    CMD_EXTI_ON = cmd2uint('c', 'm', 'd', '2'),
+    CMD_SET_TIM = cmd2uint('c', 'm', 'd', '3'),
+    CMD_SET_SG_LEN = cmd2uint('c', 'm', 'd', '4'),
+    CMD_SET_FFT_LEN = cmd2uint('c', 'm', 'd', '5'),
     CMD_SEND_RES = cmd2uint('c', 'm', 'd', '6'),
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '7'),
     CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '8'),
     CMD_SEND_SG = cmd2uint('c', 'm', 'd', '9'),
     CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
+    CMD_NONE,
 };
 static enum cmd cmd = CMD_NONE;
 
 ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
     struct {
         uint32_t cmd;
+        uint32_t arg;
         uint16_t crc;
     };
 
-    uint8_t bytes[CMD_LEN + 2];
+    uint8_t bytes[CMD_LEN + ARG_LEN + 2];
 } rx_buf;
 
 ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
@@ -106,7 +113,7 @@ static void fft_dopp_calc()
 
 static void crc_check()
 {
-    uint16_t crc = crc_calc(rx_buf.bytes, CMD_LEN);
+    uint16_t crc = crc_calc(rx_buf.bytes, CMD_LEN + ARG_LEN);
     if (rx_buf.crc != crc) {
         uart_state = UART_STATE_ERROR;
     }
@@ -115,7 +122,7 @@ static void crc_check()
 
 static void dis_echo()
 {
-    uart_dma_send(&rx_buf, CMD_LEN + 2);
+    uart_dma_send(&rx_buf, CMD_LEN + ARG_LEN + 2);
     uart_state = UART_STATE_RCV;
 }
 
@@ -124,8 +131,8 @@ void dis_init()
     uart_timeout_config();
 
     adc_dma_config(&adc_data, SG_CHUNK_BYTE_LEN);
-    uart_dma_tx_config(&tx_buf, CMD_LEN + 2);
-    uart_dma_rx_config(&rx_buf, CMD_LEN + 2);
+    uart_dma_tx_config(&tx_buf, CMD_LEN + RES_LEN + 2);
+    uart_dma_rx_config(&rx_buf, CMD_LEN + ARG_LEN + 2);
 
     adc_calibration();
     adc_en();
@@ -163,10 +170,18 @@ void cmd_work()
     case CMD_EXTI_ON: {
         LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_0);
     } break;
+    case CMD_SET_TIM: {
+        if (rx_buf.arg < TIM_DLY_MAX) {
+            tim_dly_set(rx_buf.arg);
+        } else {
+            rx_buf.arg = 0xFF;
+        }
+        dis_echo();
+    } break;
     case CMD_START_CONV: {
         adc_state = ADC_STATE_CONV;
         adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
-        tim_on();
+        tim_dly_on();
     } break;
     case CMD_SEND_RES: {
         uart_state = UART_STATE_SEND_CRC;
@@ -258,7 +273,7 @@ void EXTI0_IRQHandler(void)
         crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
         adc_dma_start(&adc_data, SG_CHUNK_BYTE_LEN);
         adc_state = ADC_STATE_CONV;
-        tim_on();
+        tim_dly_on();
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }
 }
@@ -270,7 +285,7 @@ void adc_dma_callback()
     if (cnt < SG_ADC_CHUNKS) {
         adc_dma_start(&adc_data[SG_CHUNK_BYTE_LEN * cnt], SG_CHUNK_BYTE_LEN);
     } else {
-        tim_off();
+        tim_adc_off();
         adc_state = ADC_STATE_RDY;
         // uart_state = UART_STATE_SEND_SG;
         // uart_dma_send(&tx_buf.cmd, CMD_LEN);

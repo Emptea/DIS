@@ -74,11 +74,17 @@ ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
     uint32_t cnt2send;
 } adc_data = {.sg = {0}, .len = SG_LEN_MAX};
 
-static cmplx64_t x[FFT_LEN_MAX] = {0};
+static struct {
+    cmplx64_t x[FFT_LEN_MAX];
+    uint32_t len;
+    uint32_t cnt2send;
+} fft = {.x = {0}, .len = FFT_LEN_MAX};
+
+ALIGN_32BYTES __attribute__((section(".res"))) static float32_t fft_mag_sq[FFT_LEN_MAX / 2] = {0};
+
 #ifdef BURG
-    static cmplx64_t pxx[SG_LEN_MAX] = {0};
+static cmplx64_t pxx[SG_LEN_MAX] = {0};
 #endif
-ALIGN_32BYTES __attribute__((section(".res"))) static float32_t fft_mag_sq[SG_LEN_MAX / 2] = {0};
 
 static volatile enum {
     UART_STATE_RCV = 0,
@@ -101,13 +107,13 @@ static volatile enum {
 static void fft_dopp_calc()
 {
     uint32_t halflen = adc_data.len / 2;
-    array_ui16_to_cmplxf32(adc_data.sg, x, adc_data.len);
+    array_ui16_to_cmplxf32(adc_data.sg, fft.x, adc_data.len);
 #ifdef BURG
-    burg(x, pxx, SG_LEN);
+    burg(fft.x, pxx, SG_LEN);
     arm_cmplx_mag_f32((float32_t *)pxx, fft_mag_sq, halflen);
 #else
-    cmplx_fft_calc(x, adc_data.len);
-    arm_cmplx_mag_f32((float32_t *)x, fft_mag_sq, halflen);
+    cmplx_fft_calc(fft.x, adc_data.len);
+    arm_cmplx_mag_f32((float32_t *)fft.x, fft_mag_sq, halflen);
 #endif
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
@@ -190,6 +196,14 @@ void cmd_work()
         }
         dis_echo();
     } break;
+    case CMD_SET_FFT_LEN: {
+        if (rx_buf.arg > FFT_LEN_MIN && rx_buf.arg < FFT_LEN_MAX) {
+            fft.len = rx_buf.arg;
+        } else {
+            rx_buf.arg = 0xFF;
+        }
+        dis_echo();
+    } break;
     case CMD_START_CONV: {
         adc_state = ADC_STATE_CONV;
         adc_dma_start(&adc_data, adc_data.len);
@@ -202,6 +216,7 @@ void cmd_work()
     } break;
     case CMD_SEND_FFT: {
         uart_state = UART_STATE_SEND_FFT;
+        fft.cnt2send = fft.len * 2;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
@@ -227,11 +242,17 @@ void uart_send_dma_callback()
         uart_state = UART_STATE_RCV;
     } break;
     case UART_STATE_SEND_FFT: {
-        // tx_buf.crc = crc_calc((uint8_t *)&x[SG_CHUNK_WORD_LEN / 2 * cnt], SG_CHUNK_BYTE_LEN);
-        // uart_dma_send(&x[SG_CHUNK_WORD_LEN / 2 * (cnt++)], SG_CHUNK_BYTE_LEN);
-        // if (cnt == FFT_WORD_CHUNKS) {
-        //     uart_state = UART_STATE_SEND_CRC;
-        // };
+        if (fft.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
+            fft.cnt2send -= SG_CHUNK_BYTE_LEN_MAX;
+            crc_calc((uint8_t *)&fft.x, SG_CHUNK_BYTE_LEN_MAX);
+            uart_dma_send(&fft.x, SG_CHUNK_BYTE_LEN_MAX);
+            idx = SG_CHUNK_BYTE_LEN_MAX;
+        } else {
+            uart_dma_send(&fft.x[idx], fft.cnt2send);
+            crc_calc((uint8_t *)&fft.x[idx], fft.cnt2send);
+            idx = 0;
+            uart_state = UART_STATE_SEND_CRC;
+        }
     } break;
     case UART_STATE_SEND_SG: {
         if (adc_data.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
@@ -245,7 +266,6 @@ void uart_send_dma_callback()
             idx = 0;
             uart_state = UART_STATE_SEND_CRC;
         }
-
     } break;
     case UART_STATE_SEND_CRC: {
         uart_dma_send(&tx_buf.crc, 2);
@@ -294,9 +314,12 @@ void EXTI0_IRQHandler(void)
 void adc_dma_callback()
 {
     tim_adc_off();
+    if (fft.len > adc_data.len) {
+        for (uint32_t i = adc_data.len; i < fft.len; i++) {
+            fft.x[i] = 0;
+        }
+    }
     adc_state = ADC_STATE_RDY;
-    // uart_state = UART_STATE_SEND_SG;
-    // uart_dma_send(&tx_buf.cmd, CMD_LEN);
 }
 
 /**

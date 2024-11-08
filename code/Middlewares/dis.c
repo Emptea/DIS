@@ -22,6 +22,9 @@
 #define SG_LEN_MIN            1024
 #define SG_LEN_MAX            32768
 
+#define FFT_LEN_MIN           1024
+#define FFT_LEN_MAX           32768
+
 #define CMD_LEN               4
 #define ARG_LEN               4
 #define RES_LEN               4
@@ -71,8 +74,10 @@ ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
     uint32_t cnt2send;
 } adc_data = {.sg = {0}, .len = SG_LEN_MAX};
 
-static cmplx64_t x[SG_LEN_MAX] = {0};
-static cmplx64_t pxx[SG_LEN_MAX] = {0};
+static cmplx64_t x[FFT_LEN_MAX] = {0};
+#ifdef BURG
+    static cmplx64_t pxx[SG_LEN_MAX] = {0};
+#endif
 ALIGN_32BYTES __attribute__((section(".res"))) static float32_t fft_mag_sq[SG_LEN_MAX / 2] = {0};
 
 static volatile enum {
@@ -101,10 +106,7 @@ static void fft_dopp_calc()
     burg(x, pxx, SG_LEN);
     arm_cmplx_mag_f32((float32_t *)pxx, fft_mag_sq, halflen);
 #else
-    cmplx_fft_calc(x);
-    for (uint32_t i = 0; i < adc_data.len; i++) {
-        x[i] *= x[i] * i;
-    }
+    cmplx_fft_calc(x, adc_data.len);
     arm_cmplx_mag_f32((float32_t *)x, fft_mag_sq, halflen);
 #endif
     float32_t fft_max = 0.0f;
@@ -234,17 +236,16 @@ void uart_send_dma_callback()
     case UART_STATE_SEND_SG: {
         if (adc_data.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
             adc_data.cnt2send -= SG_CHUNK_BYTE_LEN_MAX;
-            crc_calc((uint8_t *)&adc_data,  SG_CHUNK_BYTE_LEN_MAX);
+            crc_calc((uint8_t *)&adc_data, SG_CHUNK_BYTE_LEN_MAX);
             uart_dma_send(&adc_data, SG_CHUNK_BYTE_LEN_MAX);
             idx = SG_CHUNK_BYTE_LEN_MAX;
         } else {
-            uart_dma_send(&adc_data.sg[idx],  adc_data.cnt2send);
-            crc_calc((uint8_t *)&adc_data.sg[idx],  adc_data.cnt2send);
+            uart_dma_send(&adc_data.sg[idx], adc_data.cnt2send);
+            crc_calc((uint8_t *)&adc_data.sg[idx], adc_data.cnt2send);
             idx = 0;
             uart_state = UART_STATE_SEND_CRC;
         }
 
-        
     } break;
     case UART_STATE_SEND_CRC: {
         uart_dma_send(&tx_buf.crc, 2);

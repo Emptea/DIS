@@ -10,7 +10,7 @@
 #include "array.h"
 #include "burg.h"
 
-//#define BURG
+// #define BURG
 
 #define ALIGN_32BYTES __attribute__((aligned(32)))
 
@@ -26,8 +26,7 @@
 #define ARG_LEN               4
 #define RES_LEN               4
 
-#define SG_ADC_CHUNK_LEN_MAX  SG_LEN_MAX
-#define SG_CHUNK_BYTE_LEN_MAX ((uint32_t)SG_LEN_MAX * 2)
+#define SG_CHUNK_BYTE_LEN_MAX UINT16_MAX
 
 #define FS                    2000000.0f
 #define F_STEP                (FS / ((float32_t)SG_LEN))
@@ -69,7 +68,8 @@ ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
 ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
     uint16_t sg[SG_LEN_MAX];
     uint32_t len;
-} adc_data = { .sg = {0}, .len  = SG_LEN_MAX };
+    uint32_t cnt2send;
+} adc_data = {.sg = {0}, .len = SG_LEN_MAX};
 
 static cmplx64_t x[SG_LEN_MAX] = {0};
 static cmplx64_t pxx[SG_LEN_MAX] = {0};
@@ -205,6 +205,7 @@ void cmd_work()
     } break;
     case CMD_SEND_SG: {
         uart_state = UART_STATE_SEND_SG;
+        adc_data.cnt2send = adc_data.len * 2;
         uart_dma_send(&tx_buf.cmd, CMD_LEN);
         crc_calc((uint8_t *)&cmd, CMD_LEN);
     } break;
@@ -218,6 +219,7 @@ void cmd_work()
 
 void uart_send_dma_callback()
 {
+    static uint32_t idx = 0;
     switch (uart_state) {
     case UART_STATE_ERROR: {
         uart_state = UART_STATE_RCV;
@@ -230,9 +232,19 @@ void uart_send_dma_callback()
         // };
     } break;
     case UART_STATE_SEND_SG: {
-        tx_buf.crc = crc_calc((uint8_t *)&adc_data, adc_data.len);
-        uart_dma_send(&adc_data, adc_data.len);
-        uart_state = UART_STATE_SEND_CRC;
+        if (adc_data.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
+            adc_data.cnt2send -= SG_CHUNK_BYTE_LEN_MAX;
+            crc_calc((uint8_t *)&adc_data,  SG_CHUNK_BYTE_LEN_MAX);
+            uart_dma_send(&adc_data, SG_CHUNK_BYTE_LEN_MAX);
+            idx = SG_CHUNK_BYTE_LEN_MAX;
+        } else {
+            uart_dma_send(&adc_data.sg[idx],  adc_data.cnt2send);
+            crc_calc((uint8_t *)&adc_data.sg[idx],  adc_data.cnt2send);
+            idx = 0;
+            uart_state = UART_STATE_SEND_CRC;
+        }
+
+        
     } break;
     case UART_STATE_SEND_CRC: {
         uart_dma_send(&tx_buf.crc, 2);

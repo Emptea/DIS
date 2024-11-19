@@ -20,6 +20,8 @@
         "functional": "c",
         "cmplx.h": "c",
         "arm_const_structs.h": "c",
-        "extra_ffts.h": "c"
+        "extra_ffts.h": "c",
+        "arm_const_structs_extra.h": "c",
+        "arm_common_tables_extra.h": "c"
     }
 }

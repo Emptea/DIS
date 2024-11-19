@@ -40,7 +40,9 @@ enum {
     ERR_NONE = 0,
     ERR_CMD,
     ERR_ARG,
-    ERR_ARG_FFT,
+    ERR_ARG_TIM = 0x00000102,
+    ERR_ARG_SG = 0x00000202,
+    ERR_ARG_FFT = 0x00000302,
 };
 
 enum cmd {

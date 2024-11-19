@@ -36,6 +36,13 @@
 #define F0                    56710000000.0f
 #define LAMBDA                (299792458.0f / F0)
 
+enum {
+    ERR_NONE = 0,
+    ERR_CMD,
+    ERR_ARG,
+    ERR_ARG_FFT,
+};
+
 enum cmd {
     CMD_PWR_ON = cmd2uint('c', 'm', 'd', '0'),
     CMD_PWR_OFF = cmd2uint('c', 'm', 'd', '1'),

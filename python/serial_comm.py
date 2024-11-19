@@ -19,6 +19,7 @@ cmd_set_fft_len = bytearray('cmd5', 'utf-8')
 cmd_start_conv = bytearray('cmd7', 'utf-8')
 cmd_send_fft = bytearray('cmd8', 'utf-8')
 cmd_send_sg = bytearray('cmd9', 'utf-8')
+cmd_ping = bytearray('ping', 'utf-8')
 
 ser = serial.Serial()
 ser.baudrate= 256000
@@ -31,6 +32,8 @@ def ask(ser, cmd, arg):
     cmd.extend(crc16(cmd).to_bytes(2,'little'))
     ser.write(cmd)
     print(' '.join(format(x, '02x') for x in cmd))
+    ans = ser.read(10)
+    print(' '.join(format(x, '02x') for x in ans))
 
 def plot(sg):
     x = np.linspace(0, (sz_sg-1)/2e6, sz_sg)
@@ -40,9 +43,11 @@ def plot(sg):
     # ax.plot(x, sg)
     plt.show()
 
+
+ask(ser, cmd_ping[::-1], 0)
 ask(ser, cmd_set_sg_len[::-1], int(32768/2))
-resp = ser.read(10)
-print(' '.join(format(x, '02x') for x in resp))
+# resp = ser.read(10)
+# print(' '.join(format(x, '02x') for x in resp))
 # ask(ser, cmd_send_sg[::-1], 0)
 # ask(ser, cmd_send_sg[::-1])
 # pack = bytearray(sz_cmd + 2*sz_sg - 1)

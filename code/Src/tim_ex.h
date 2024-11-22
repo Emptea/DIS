@@ -6,5 +6,5 @@
 void tim_adc_on();
 void tim_adc_off();
 void tim_dly_on();
-void tim_dly_set(uint32_t ms);
+uint32_t tim_dly_set(uint32_t ms);
 #endif

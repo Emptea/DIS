@@ -18,6 +18,7 @@ LR_IROM1 0x08000000 0x00200000  {    ; load region size_region
    *(.dma.adc_data)
    *(.dma.rx_buf)
    *(.dma.tx_buf)
+   *(.dma.rslt_buf)
   }
 }
 

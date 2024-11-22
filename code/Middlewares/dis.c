@@ -17,8 +17,6 @@
 #define cmd2uint(char1, char2, char3, char4) \
     ((char1 << 24) + (char2 << 16) + (char3 << 8) + char4)
 
-#define TIM_DLY_MAX           1000
-
 #define SG_LEN_MIN            1024
 #define SG_LEN_MAX            32768
 
@@ -38,28 +36,43 @@
 
 enum {
     ERR_NONE = 0,
-    ERR_CMD,
-    ERR_ARG,
+    ERR_CMD = 1,
+    ERR_ARG = 2,
+    ERR_NO_RES = 3,
     ERR_ARG_TIM = 0x00000102,
     ERR_ARG_SG = 0x00000202,
     ERR_ARG_FFT = 0x00000302,
+    ERR_ARG_NBYTES = 0x00000402,
 };
 
+enum res {
+    RES_RDY = 0,
+    RES_NONE = 1,
+};
+static enum res res = RES_NONE;
+
 enum cmd {
-    CMD_PWR_ON = cmd2uint('c', 'm', 'd', '0'),
-    CMD_PWR_OFF = cmd2uint('c', 'm', 'd', '1'),
-    CMD_EXTI_ON = cmd2uint('c', 'm', 'd', '2'),
-    CMD_SET_TIM = cmd2uint('c', 'm', 'd', '3'),
-    CMD_SET_SG_LEN = cmd2uint('c', 'm', 'd', '4'),
-    CMD_SET_FFT_LEN = cmd2uint('c', 'm', 'd', '5'),
-    CMD_SEND_RES = cmd2uint('c', 'm', 'd', '6'),
+    CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
+    CMD_PWR_ON_OFF = cmd2uint('c', 'm', 'd', '0'),
+    CMD_EXTI_ON_OFF = cmd2uint('c', 'm', 'd', '1'),
+    CMD_SET_TIM = cmd2uint('c', 'm', 'd', '2'),
+    CMD_SET_SG_LEN = cmd2uint('c', 'm', 'd', '3'),
+    CMD_SET_FFT_LEN = cmd2uint('c', 'm', 'd', '4'),
+    CMD_SEND_RES = cmd2uint('c', 'm', 'd', '5'),
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '7'),
     CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '8'),
     CMD_SEND_SG = cmd2uint('c', 'm', 'd', '9'),
-    CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
-    CMD_NONE,
 };
-static enum cmd cmd = CMD_NONE;
+static enum cmd cmd = CMD_PING;
+
+enum header {
+    HEADER_RSLT = cmd2uint('r', 's', 'l', 't'),
+    HEADER_PULSE = cmd2uint('p', 'u', 'l', 's'),
+    HEADER_SG = cmd2uint('p', 's', 'i', 'g'),
+    HEADER_FFT = cmd2uint('p', 'f', 'f', 't'),
+    HEADER_ERR = cmd2uint('e', 'r', 'n', 'o'),
+};
+static enum header header = HEADER_ERR;
 
 ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
     struct {
@@ -73,9 +86,16 @@ ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
 
 ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
     uint32_t cmd;
+    uint32_t err;
+    uint16_t header_crc;
+    uint16_t data_crc;
+} tx_buf;
+
+ALIGN_32BYTES __attribute__((section(".dma.rslt_buf"))) struct {
+    uint32_t cmd;
     float32_t v_max;
     uint16_t crc;
-} tx_buf;
+} rslt_buf = {.cmd = HEADER_RSLT};
 
 ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
     union {
@@ -106,7 +126,7 @@ static cmplx64_t pxx[SG_LEN_MAX] = {0};
 static volatile enum {
     UART_STATE_RCV = 0,
     UART_STATE_SEND_RES = 1,
-    UART_STATE_SEND_CRC = 2,
+    UART_STATE_SEND_DATA_CRC = 2,
     UART_STATE_ECHO = 3,
     UART_STATE_ERROR = 4,
     // debug states
@@ -114,14 +134,22 @@ static volatile enum {
     UART_STATE_SEND_SG,
 } uart_state = UART_STATE_RCV;
 
-static volatile enum {
-    ADC_STATE_IDLE = 0,
-    ADC_STATE_CONV = 1,
-    ADC_STATE_RDY = 2,
-    ADC_STATE_ERROR = 3,
-} adc_state = ADC_STATE_IDLE;
+inline static uint32_t res_check()
+{
+    if (res != RES_RDY) {
+        return ERR_NO_RES;
+    } else {
+        return ERR_NONE;
+    }
+}
 
-static void fft_dopp_calc()
+static void res_send()
+{
+    rslt_buf.crc = crc_calc((uint8_t *)&rslt_buf, CMD_LEN + ARG_LEN);
+    uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
+}
+
+static void dopp_calc()
 {
     uint32_t halflen = fft.len / 2;
     array_ui16_to_cmplxf32(adc_data.sg.data, fft.x.cmplx, adc_data.len);
@@ -140,7 +168,7 @@ static void fft_dopp_calc()
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
     arm_max_f32(fft_mag_sq, halflen, &fft_max, &i_max);
-    tx_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
+    rslt_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
 }
 
 static void crc_check()
@@ -149,7 +177,8 @@ static void crc_check()
     if (rx_buf.crc != crc) {
         uart_state = UART_STATE_ERROR;
     }
-    LL_CRC_SetInitialData(CRC, 0xFFFF);
+    LL_CRC_ResetCRCCalculationUnit(CRC);
+    // LL_CRC_SetInitialData(CRC, 0xFFFF);
 }
 
 static void dis_echo()
@@ -174,87 +203,97 @@ void dis_init()
 
 void dis_work()
 {
-    switch (adc_state) {
-    case ADC_STATE_RDY:
-        fft_dopp_calc();
-        adc_state = ADC_STATE_IDLE;
-        tx_buf.cmd = CMD_SEND_RES;
-        uart_state = UART_STATE_SEND_CRC;
-        tx_buf.crc = crc_calc((uint8_t *)&tx_buf, CMD_LEN + ARG_LEN);
-        uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
-        break;
-    default:
-        break;
+    if (adc_is_rdy()) {
+        dopp_calc();
+        adc_to_idle();
+        res_send();
     }
+}
+
+// move into different file?
+inline static uint32_t check_len_boundaries(uint32_t arg, uint32_t min, uint32_t max)
+{
+    return ERR_ARG * (arg <= min && arg >= max);
+}
+
+inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32_t max)
+{
+    uint32_t err = check_len_boundaries(arg, min, max);
+    if (!err) {
+        *len = arg;
+    }
+    return err;
+}
+
+inline static uint32_t sg_send()
+{
+    uint32_t err = check_len_boundaries(rx_buf.arg, SG_LEN_MIN, adc_data.len);
+    if (!err) {
+        uart_state = UART_STATE_SEND_SG;
+        adc_data.cnt2send = rx_buf.arg * 2;
+    }
+    return err;
+}
+
+inline static uint32_t fft_send()
+{
+    uint32_t err = check_len_boundaries(rx_buf.arg, FFT_LEN_MIN, fft.len) && res_check();
+    if (!err) {
+        uart_state = UART_STATE_SEND_FFT;
+        fft.cnt2send = rx_buf.arg * 8;
+    }
+    return err;
 }
 
 void cmd_work()
 {
-    tx_buf.cmd = rx_buf.cmd;
+    tx_buf.cmd = HEADER_ERR;
+
     switch (rx_buf.cmd) {
-    case CMD_PWR_ON: {
-        pwr_on();
-        dis_echo();
+    case CMD_PWR_ON_OFF: {
+        tx_buf.err = pwr_on_off(rx_buf.arg);
     } break;
-    case CMD_PWR_OFF: {
-        pwr_off();
-        dis_echo();
-    } break;
-    case CMD_EXTI_ON: {
-        LL_EXTI_EnableIT_0_31(LL_EXTI_LINE_0);
+    case CMD_EXTI_ON_OFF: {
+        tx_buf.err = exti_on_off(rx_buf.arg);
     } break;
     case CMD_SET_TIM: {
-        if (rx_buf.arg < TIM_DLY_MAX) {
-            tim_dly_set(rx_buf.arg);
-        } else {
-            rx_buf.arg = 0xFF;
-        }
-        dis_echo();
+        tx_buf.err = tim_dly_set(rx_buf.arg);
     } break;
     case CMD_SET_SG_LEN: {
-        if (rx_buf.arg >= SG_LEN_MIN && rx_buf.arg <= SG_LEN_MAX) {
-            adc_data.len = rx_buf.arg;
-        } else {
-            rx_buf.arg = 0xFF;
-        }
-        dis_echo();
+        tx_buf.err = set_len(&adc_data.len, rx_buf.arg, SG_LEN_MIN, SG_LEN_MAX);
     } break;
     case CMD_SET_FFT_LEN: {
-        if (rx_buf.arg >= FFT_LEN_MIN && rx_buf.arg <= FFT_LEN_MAX) {
-            fft.len = rx_buf.arg;
-        } else {
-            rx_buf.arg = 0xFF;
-        }
-        dis_echo();
-    } break;
-    case CMD_START_CONV: {
-        adc_state = ADC_STATE_CONV;
-        adc_dma_start(&adc_data, adc_data.len);
-        tim_dly_on();
+        tx_buf.err = set_len(&fft.len, rx_buf.arg, FFT_LEN_MIN, FFT_LEN_MAX);
     } break;
     case CMD_SEND_RES: {
-        uart_state = UART_STATE_SEND_CRC;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
-        crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
+        tx_buf.err = res_check();
+        if (!tx_buf.err) {
+            res_send();
+            return;
+        }
+    } break;
+    case CMD_START_CONV: {
+        adc_start_conv(&adc_data, adc_data.len);
+        tx_buf.err = ERR_NONE;
     } break;
     case CMD_SEND_FFT: {
-        uart_state = UART_STATE_SEND_FFT;
-        fft.cnt2send = fft.len * 8;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN);
-        crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
+        tx_buf.err = fft_send();
     } break;
     case CMD_SEND_SG: {
-        uart_state = UART_STATE_SEND_SG;
-        adc_data.cnt2send = adc_data.len * 2;
-        uart_dma_send(&tx_buf.cmd, CMD_LEN);
-        crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN);
+        tx_buf.err = sg_send();
     } break;
     case CMD_PING: {
         dis_echo();
+        return;
     } break;
     default: {
+        tx_buf.err = ERR_CMD;
     } break;
     }
+
+    tx_buf.header_crc = ((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
+    uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN + 2);
+    LL_CRC_ResetCRCCalculationUnit(CRC);
 }
 
 void uart_send_dma_callback()
@@ -272,9 +311,9 @@ void uart_send_dma_callback()
             idx += SG_CHUNK_BYTE_LEN_MAX;
         } else {
             uart_dma_send(&fft.x.bytes[idx], fft.cnt2send);
-            tx_buf.crc = crc_calc((uint8_t *)&fft.x.bytes[idx], fft.cnt2send);
+            tx_buf.data_crc = crc_calc((uint8_t *)&fft.x.bytes[idx], fft.cnt2send);
             idx = 0;
-            uart_state = UART_STATE_SEND_CRC;
+            uart_state = UART_STATE_SEND_DATA_CRC;
         }
     } break;
     case UART_STATE_SEND_SG: {
@@ -284,14 +323,14 @@ void uart_send_dma_callback()
             uart_dma_send(&adc_data.sg.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
             idx += SG_CHUNK_BYTE_LEN_MAX;
         } else {
-            tx_buf.crc = crc_calc((uint8_t *)&adc_data.sg.bytes[idx], adc_data.cnt2send);
+            tx_buf.data_crc = crc_calc((uint8_t *)&adc_data.sg.bytes[idx], adc_data.cnt2send);
             uart_dma_send(&adc_data.sg.bytes[idx], adc_data.cnt2send);
             idx = 0;
-            uart_state = UART_STATE_SEND_CRC;
+            uart_state = UART_STATE_SEND_DATA_CRC;
         }
     } break;
-    case UART_STATE_SEND_CRC: {
-        uart_dma_send(&tx_buf.crc, 2);
+    case UART_STATE_SEND_DATA_CRC: {
+        uart_dma_send(&tx_buf.data_crc, 2);
         LL_CRC_SetInitialData(CRC, 0xFFFF);
         uart_state = UART_STATE_RCV;
     } break;
@@ -325,31 +364,7 @@ void EXTI0_IRQHandler(void)
 {
     if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET && LL_EXTI_IsEnabledIT_0_31(LL_EXTI_LINE_0)) {
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
-        adc_dma_start(&adc_data, adc_data.len);
-        adc_state = ADC_STATE_CONV;
-        tim_dly_on();
+        adc_start_conv(&adc_data, adc_data.len);
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
-    }
-}
-
-void adc_dma_callback()
-{
-    tim_adc_off();
-    adc_state = ADC_STATE_RDY;
-}
-
-/**
- * @brief This function handles DMA1 stream0 global interrupt (ADC).
- */
-void DMA1_Stream0_IRQHandler(void)
-{
-    if (LL_DMA_IsActiveFlag_TC0(DMA1)) {
-        LL_DMA_ClearFlag_TC0(DMA1);
-        adc_dma_callback();
-    }
-
-    if (LL_DMA_IsActiveFlag_TE0(DMA1)) {
-        LL_DMA_ClearFlag_TE0(DMA1);
-        adc_state = ADC_STATE_ERROR;
     }
 }

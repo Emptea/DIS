@@ -26,6 +26,7 @@
 #define CMD_LEN               4
 #define ARG_LEN               4
 #define RES_LEN               4
+#define HEADER_LEN            (CMD_LEN + RES_LEN + 2)
 
 #define SG_CHUNK_BYTE_LEN_MAX UINT16_MAX
 
@@ -60,8 +61,8 @@ enum cmd {
     CMD_SET_FFT_LEN = cmd2uint('c', 'm', 'd', '4'),
     CMD_SEND_RES = cmd2uint('c', 'm', 'd', '5'),
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '7'),
-    CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '8'),
-    CMD_SEND_SG = cmd2uint('c', 'm', 'd', '9'),
+    CMD_SEND_SG = cmd2uint('c', 'm', 'd', '8'),
+    CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '9'),
 };
 static enum cmd cmd = CMD_PING;
 
@@ -146,7 +147,7 @@ inline static uint32_t res_check()
 static void res_send()
 {
     rslt_buf.crc = crc_calc((uint8_t *)&rslt_buf, CMD_LEN + ARG_LEN);
-    uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN);
+    uart_dma_send(&rslt_buf.cmd, HEADER_LEN);
 }
 
 static void dopp_calc()
@@ -183,7 +184,7 @@ static void crc_check()
 
 static void dis_echo()
 {
-    uart_dma_send(&rx_buf, CMD_LEN + ARG_LEN + 2);
+    uart_dma_send(&rx_buf, HEADER_LEN);
     uart_state = UART_STATE_RCV;
 }
 
@@ -192,8 +193,8 @@ void dis_init()
     uart_timeout_config();
 
     adc_dma_config(&adc_data, adc_data.len);
-    uart_dma_tx_config(&tx_buf, CMD_LEN + RES_LEN + 2);
-    uart_dma_rx_config(&rx_buf, CMD_LEN + ARG_LEN + 2);
+    uart_dma_tx_config(&tx_buf, HEADER_LEN);
+    uart_dma_rx_config(&rx_buf, HEADER_LEN);
 
     adc_calibration();
     adc_en();
@@ -213,7 +214,7 @@ void dis_work()
 // move into different file?
 inline static uint32_t check_len_boundaries(uint32_t arg, uint32_t min, uint32_t max)
 {
-    return ERR_ARG * (arg <= min && arg >= max);
+    return ERR_ARG * (arg < min && arg > max);
 }
 
 inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32_t max)
@@ -294,6 +295,9 @@ void cmd_work()
     tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
     uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN + 2);
     LL_CRC_ResetCRCCalculationUnit(CRC);
+    if (uart_state == UART_STATE_RCV) {
+        LL_USART_EnableRxTimeout(USART1);
+    }
 }
 
 void uart_send_dma_callback()
@@ -332,6 +336,7 @@ void uart_send_dma_callback()
     case UART_STATE_SEND_DATA_CRC: {
         uart_dma_send(&tx_buf.data_crc, 2);
         LL_CRC_SetInitialData(CRC, 0xFFFF);
+        LL_USART_EnableRxTimeout(USART1);
         uart_state = UART_STATE_RCV;
     } break;
     case UART_STATE_ECHO: {

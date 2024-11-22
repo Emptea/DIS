@@ -72,6 +72,15 @@ void uart_dma_send(void *buf, uint32_t size)
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
 }
 
+void uart_dma_rcv(void *buf, uint32_t size)
+{
+    LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, size);
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_1, (uint32_t)buf);
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+}
+
+
 __WEAK void uart_send_dma_callback(void)
 {
 }
@@ -80,7 +89,13 @@ __WEAK void uart_recv_dma_callback(void)
 {
 }
 
-void uart_dma_rx_handler()
+uint32_t uart_integrity_check(uint32_t data2rcv)
+{
+    uint32_t n_rem = LL_DMA_GetDataLength(DMA1, LL_DMA_STREAM_1);
+    return n_rem == data2rcv;
+}
+
+void DMA1_Stream1_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC1(DMA1)) {
         LL_USART_DisableRxTimeout(USART1);
@@ -93,7 +108,7 @@ void uart_dma_rx_handler()
     }
 }
 
-void uart_dma_tx_handler()
+void DMA1_Stream2_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC2(DMA1)) {
         LL_DMA_ClearFlag_TC2(DMA1);
@@ -103,17 +118,6 @@ void uart_dma_tx_handler()
     if (LL_DMA_IsActiveFlag_TE2(DMA1)) {
         LL_DMA_ClearFlag_TE2(DMA1);
     }
-}
-
-
-void DMA1_Stream1_IRQHandler(void)
-{
-    uart_dma_rx_handler();
-}
-
-void DMA1_Stream2_IRQHandler(void)
-{
-    uart_dma_tx_handler();
 }
 
 void USART1_IRQHandler(void)

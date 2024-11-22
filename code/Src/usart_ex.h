@@ -13,7 +13,9 @@ void uart_dma_rx_config(void *buf, uint32_t size);
 void uart_timeout_config();
 
 void uart_dma_send(void *buf, uint32_t size);
+void uart_dma_rcv(void *buf, uint32_t size);
 
 void uart_send_dma_callback(void);
 void uart_recv_dma_callback(void);
+uint32_t uart_integrity_check(uint32_t data2rcv);
 #endif

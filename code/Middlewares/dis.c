@@ -23,10 +23,10 @@
 #define FFT_LEN_MIN           1024
 #define FFT_LEN_MAX           32768
 
-#define CMD_LEN               4
-#define ARG_LEN               4
-#define RES_LEN               4
-#define HEADER_LEN            (CMD_LEN + RES_LEN + 2)
+#define CMD_SZ                4
+#define ARG_SZ                4
+#define RES_SZ                4
+#define HEADER_SZ             (CMD_SZ + RES_SZ + 2)
 
 #define SG_CHUNK_BYTE_LEN_MAX UINT16_MAX
 
@@ -46,11 +46,11 @@ enum {
     ERR_ARG_NBYTES = 0x00000402,
 };
 
-enum res {
+enum res_state {
     RES_RDY = 0,
     RES_NONE = 1,
 };
-static enum res res = RES_NONE;
+static enum res_state res_state = RES_NONE;
 
 enum cmd {
     CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
@@ -82,7 +82,7 @@ ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
         uint16_t crc;
     };
 
-    uint8_t bytes[CMD_LEN + ARG_LEN + 2];
+    uint8_t bytes[CMD_SZ + ARG_SZ + 2];
 } rx_buf;
 
 ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
@@ -137,7 +137,7 @@ static volatile enum {
 
 inline static uint32_t res_check()
 {
-    if (res != RES_RDY) {
+    if (res_state != RES_RDY) {
         return ERR_NO_RES;
     } else {
         return ERR_NONE;
@@ -146,8 +146,8 @@ inline static uint32_t res_check()
 
 static void res_send()
 {
-    rslt_buf.crc = crc_calc((uint8_t *)&rslt_buf, CMD_LEN + ARG_LEN);
-    uart_dma_send(&rslt_buf.cmd, HEADER_LEN);
+    rslt_buf.crc = crc_calc((uint8_t *)&rslt_buf, CMD_SZ + ARG_SZ);
+    uart_dma_send(&rslt_buf.cmd, HEADER_SZ);
 }
 
 static void dopp_calc()
@@ -174,7 +174,7 @@ static void dopp_calc()
 
 static void crc_check()
 {
-    uint16_t crc = crc_calc(rx_buf.bytes, CMD_LEN + ARG_LEN);
+    uint16_t crc = crc_calc(rx_buf.bytes, CMD_SZ + ARG_SZ);
     if (rx_buf.crc != crc) {
         uart_state = UART_STATE_ERROR;
     }
@@ -184,7 +184,7 @@ static void crc_check()
 
 static void dis_echo()
 {
-    uart_dma_send(&rx_buf, HEADER_LEN);
+    uart_dma_send(&rx_buf, HEADER_SZ);
     uart_state = UART_STATE_RCV;
 }
 
@@ -193,8 +193,8 @@ void dis_init()
     uart_timeout_config();
 
     adc_dma_config(&adc_data, adc_data.len);
-    uart_dma_tx_config(&tx_buf, HEADER_LEN);
-    uart_dma_rx_config(&rx_buf, HEADER_LEN);
+    uart_dma_tx_config(&tx_buf, HEADER_SZ);
+    uart_dma_rx_config(&rx_buf, HEADER_SZ);
 
     adc_calibration();
     adc_en();
@@ -207,6 +207,7 @@ void dis_work()
     if (adc_is_rdy()) {
         dopp_calc();
         adc_to_idle();
+        res_state = RES_RDY;
         res_send();
     }
 }
@@ -214,7 +215,7 @@ void dis_work()
 // move into different file?
 inline static uint32_t check_len_boundaries(uint32_t arg, uint32_t min, uint32_t max)
 {
-    return ERR_ARG * (arg < min && arg > max);
+    return ERR_ARG * (arg < min || arg > max);
 }
 
 inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32_t max)
@@ -292,11 +293,12 @@ void cmd_work()
     } break;
     }
 
-    tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
-    uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN + 2);
-    LL_CRC_ResetCRCCalculationUnit(CRC);
+    tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_SZ + RES_SZ);
+    uart_dma_send(&tx_buf.cmd, CMD_SZ + RES_SZ + 2);
+    LL_CRC_SetInitialData(CRC, 0xFFFF);
     if (uart_state == UART_STATE_RCV) {
         LL_USART_EnableRxTimeout(USART1);
+        uart_dma_rcv(&rx_buf, HEADER_SZ);
     }
 }
 
@@ -348,10 +350,19 @@ void uart_send_dma_callback()
     }
 }
 
-void uart_recv_dma_callback()
+inline static void check_pack()
+{
+    uart_state = UART_STATE_ERROR * uart_integrity_check(HEADER_SZ);
+    crc_check();
+}
+
+static void uart_state_work()
 {
     switch (uart_state) {
     case UART_STATE_ERROR: {
+        LL_USART_EnableRxTimeout(USART1);
+        uart_dma_rcv(&rx_buf, HEADER_SZ);
+        uart_state = UART_STATE_RCV;
         break;
     }
     case UART_STATE_RCV: {
@@ -362,6 +373,12 @@ void uart_recv_dma_callback()
         break;
     }
     }
+}
+
+void uart_recv_dma_callback()
+{
+    check_pack();
+    uart_state_work();
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
 }
 

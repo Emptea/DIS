@@ -16,9 +16,9 @@ enum {
 inline static uint32_t pwr_on_off(uint32_t on_off)
 {
     if (on_off == ARG_ON) {
-        LL_GPIO_SetOutputPin(PWR_GPIO, PWR_Pin);
-    } else if (on_off == ARG_OFF) {
         LL_GPIO_ResetOutputPin(PWR_GPIO, PWR_Pin);
+    } else if (on_off == ARG_OFF) {
+        LL_GPIO_SetOutputPin(PWR_GPIO, PWR_Pin);
     } else {
         return 2;
     }

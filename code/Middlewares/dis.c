@@ -291,7 +291,7 @@ void cmd_work()
     } break;
     }
 
-    tx_buf.header_crc = ((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
+    tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_LEN + RES_LEN);
     uart_dma_send(&tx_buf.cmd, CMD_LEN + RES_LEN + 2);
     LL_CRC_ResetCRCCalculationUnit(CRC);
 }

@@ -233,16 +233,20 @@ inline static uint32_t sg_send()
     if (!err) {
         uart_state = UART_STATE_SEND_SG;
         adc_data.cnt2send = rx_buf.arg * 2;
+        buf->cmd = HEADER_SG;
+        err = adc_data.cnt2send;
     }
     return err;
 }
 
-inline static uint32_t fft_send()
+inline static uint32_t fft_send(struct tx_buf *buf)
 {
     uint32_t err = check_len_boundaries(rx_buf.arg, FFT_LEN_MIN, fft.len) && res_check();
     if (!err) {
         uart_state = UART_STATE_SEND_FFT;
         fft.cnt2send = rx_buf.arg * 8;
+        buf->cmd = HEADER_FFT;
+        err = fft.cnt2send;
     }
     return err;
 }
@@ -279,10 +283,10 @@ void cmd_work()
         tx_buf.err = ERR_NONE;
     } break;
     case CMD_SEND_FFT: {
-        tx_buf.err = fft_send();
+        tx_buf.err = fft_send(&tx_buf);
     } break;
     case CMD_SEND_SG: {
-        tx_buf.err = sg_send();
+        tx_buf.err = sg_send(&tx_buf);
     } break;
     case CMD_PING: {
         tx_buf.err = ERR_NONE;

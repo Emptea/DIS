@@ -285,8 +285,7 @@ void cmd_work()
         tx_buf.err = sg_send();
     } break;
     case CMD_PING: {
-        dis_echo();
-        return;
+        tx_buf.err = ERR_NONE;
     } break;
     default: {
         tx_buf.err = ERR_CMD;

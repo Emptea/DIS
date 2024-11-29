@@ -190,6 +190,7 @@ static void dis_echo()
 
 void dis_init()
 {
+    pwr_on_off(ARG_OFF);
     uart_timeout_config();
 
     adc_dma_config(&adc_data, adc_data.len);

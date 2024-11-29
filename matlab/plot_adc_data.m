@@ -33,8 +33,8 @@ vref = 3.3;
 f = Fs/sg_len*(0:(sg_len/2-1));
 cfg = struct('poly',0x8005,'init',0xffff,'refin',1,'refout',1,'xorout',0);
 %%
-send_cmd(s, cmd.ping, arg.on, cfg)
-pack = read(s, 10, 'char');
+send_cmd(s, cmd.ping+"s", arg.on, cfg)
+pack = read(s, 10, c'char');
 print_ans(pack)
 %%
 send_cmd(s, cmd.pwr_on_off, arg.on, cfg)

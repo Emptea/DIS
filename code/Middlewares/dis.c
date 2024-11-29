@@ -151,6 +151,15 @@ static void res_send()
     uart_dma_send(&rslt_buf.cmd, HEADER_SZ);
 }
 
+static void dis_send_hdr(uint32_t cmd, uint32_t err)
+{
+    tx_buf.cmd = cmd;
+    tx_buf.err = err;
+    tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_SZ + RES_SZ);
+    uart_dma_send(&tx_buf.cmd, CMD_SZ + RES_SZ + 2);
+    LL_CRC_ResetCRCCalculationUnit(CRC);
+}
+
 static void dopp_calc()
 {
     uint32_t halflen = fft.len / 2;
@@ -180,13 +189,6 @@ static void crc_check()
         uart_state = UART_STATE_ERROR;
     }
     LL_CRC_ResetCRCCalculationUnit(CRC);
-    // LL_CRC_SetInitialData(CRC, 0xFFFF);
-}
-
-static void dis_echo()
-{
-    uart_dma_send(&rx_buf, HEADER_SZ);
-    uart_state = UART_STATE_RCV;
 }
 
 void dis_init()
@@ -240,25 +242,25 @@ inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32
     return err;
 }
 
-inline static uint32_t sg_send(struct tx_buf *buf)
+inline static uint32_t sg_send(uint32_t *cmd)
 {
     uint32_t err = err_sg_fft_work(ERR_ARG_SG);
     if (!err) {
         uart_state = UART_STATE_SEND_SG;
         adc_data.cnt2send = rx_buf.arg * 2;
-        buf->cmd = HEADER_SG;
+        *cmd = HEADER_SG;
         err = adc_data.cnt2send;
     }
     return err;
 }
 
-inline static uint32_t fft_send(struct tx_buf *buf)
+inline static uint32_t fft_send(uint32_t *cmd)
 {
     uint32_t err = err_sg_fft_work(ERR_ARG_FFT);
     if (!err) {
         uart_state = UART_STATE_SEND_FFT;
         fft.cnt2send = rx_buf.arg * 8;
-        buf->cmd = HEADER_FFT;
+        *cmd = HEADER_FFT;
         err = fft.cnt2send;
     }
     return err;
@@ -266,54 +268,51 @@ inline static uint32_t fft_send(struct tx_buf *buf)
 
 void cmd_work()
 {
-    tx_buf.cmd = HEADER_ERR;
+    uint32_t cmd = HEADER_ERR;
+    uint32_t err = ERR_NONE;
 
     switch (rx_buf.cmd) {
     case CMD_PWR_ON_OFF: {
-        tx_buf.err = pwr_on_off(rx_buf.arg);
+        err = pwr_on_off(rx_buf.arg);
     } break;
     case CMD_EXTI_ON_OFF: {
-        tx_buf.err = exti_on_off(rx_buf.arg);
+        err = exti_on_off(rx_buf.arg);
     } break;
     case CMD_SET_TIM: {
-        tx_buf.err = tim_dly_set(rx_buf.arg);
+        err = tim_dly_set(rx_buf.arg);
     } break;
     case CMD_SET_SG_LEN: {
-        tx_buf.err = set_len(&adc_data.len, rx_buf.arg, SG_LEN_MIN, SG_LEN_MAX);
+        err = set_len(&adc_data.len, rx_buf.arg, SG_LEN_MIN, SG_LEN_MAX);
     } break;
     case CMD_SET_FFT_LEN: {
-        tx_buf.err = set_len(&fft.len, rx_buf.arg, FFT_LEN_MIN, FFT_LEN_MAX);
+        err = set_len(&fft.len, rx_buf.arg, FFT_LEN_MIN, FFT_LEN_MAX);
     } break;
     case CMD_SEND_RES: {
-        tx_buf.err = res_check();
-        if (!tx_buf.err) {
+        err = res_check();
+        if (!err) {
             res_send();
             return;
         }
     } break;
     case CMD_START_CONV: {
         adc_start_conv(&adc_data, adc_data.len);
-        tx_buf.err = ERR_NONE;
     } break;
     case CMD_SEND_FFT: {
-        tx_buf.err = fft_send(&tx_buf);
+        tx_buf.err = fft_send(&cmd);
     } break;
     case CMD_SEND_SG: {
-        tx_buf.err = sg_send(&tx_buf);
+        tx_buf.err = sg_send(&cmd);
     } break;
     case CMD_PING: {
-        tx_buf.err = ERR_NONE;
+
     } break;
     default: {
-        tx_buf.err = ERR_CMD;
+        err = ERR_CMD;
     } break;
     }
 
-    tx_buf.header_crc = crc_calc((uint8_t *)&tx_buf.cmd, CMD_SZ + RES_SZ);
-    uart_dma_send(&tx_buf.cmd, CMD_SZ + RES_SZ + 2);
-    LL_CRC_SetInitialData(CRC, 0xFFFF);
+    dis_send_hdr(cmd, err);
     if (uart_state == UART_STATE_RCV) {
-        LL_USART_EnableRxTimeout(USART1);
         uart_dma_recv(&rx_buf, HEADER_SZ);
     }
 }
@@ -353,8 +352,7 @@ void uart_send_dma_callback()
     } break;
     case UART_STATE_SEND_DATA_CRC: {
         uart_dma_send(&tx_buf.data_crc, 2);
-        LL_CRC_SetInitialData(CRC, 0xFFFF);
-        LL_USART_EnableRxTimeout(USART1);
+        LL_CRC_ResetCRCCalculationUnit(CRC);
         uart_state = UART_STATE_RCV;
     } break;
     case UART_STATE_ECHO: {
@@ -400,6 +398,7 @@ void EXTI0_IRQHandler(void)
 {
     if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET && LL_EXTI_IsEnabledIT_0_31(LL_EXTI_LINE_0)) {
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
+        dis_send_hdr(HEADER_PULSE, ERR_NONE);
         adc_start_conv(&adc_data, adc_data.len);
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }

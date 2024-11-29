@@ -147,6 +147,7 @@ inline static uint32_t res_check()
 static void res_send()
 {
     rslt_buf.crc = crc_calc((uint8_t *)&rslt_buf, CMD_SZ + ARG_SZ);
+    LL_CRC_ResetCRCCalculationUnit(CRC);
     uart_dma_send(&rslt_buf.cmd, HEADER_SZ);
 }
 

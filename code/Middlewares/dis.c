@@ -327,8 +327,8 @@ void uart_send_dma_callback()
     case UART_STATE_SEND_FFT: {
         if (fft.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
             fft.cnt2send -= SG_CHUNK_BYTE_LEN_MAX;
-            crc_calc((uint8_t *)&fft.x.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
             uart_dma_send(&fft.x.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
+            crc_calc((uint8_t *)&fft.x.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
             idx += SG_CHUNK_BYTE_LEN_MAX;
         } else {
             uart_dma_send(&fft.x.bytes[idx], fft.cnt2send);
@@ -340,12 +340,12 @@ void uart_send_dma_callback()
     case UART_STATE_SEND_SG: {
         if (adc_data.cnt2send > SG_CHUNK_BYTE_LEN_MAX) {
             adc_data.cnt2send -= SG_CHUNK_BYTE_LEN_MAX;
-            crc_calc((uint8_t *)&adc_data.sg.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
             uart_dma_send(&adc_data.sg.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
+            crc_calc((uint8_t *)&adc_data.sg.bytes[idx], SG_CHUNK_BYTE_LEN_MAX);
             idx += SG_CHUNK_BYTE_LEN_MAX;
         } else {
-            tx_buf.data_crc = crc_calc((uint8_t *)&adc_data.sg.bytes[idx], adc_data.cnt2send);
             uart_dma_send(&adc_data.sg.bytes[idx], adc_data.cnt2send);
+            tx_buf.data_crc = crc_calc((uint8_t *)&adc_data.sg.bytes[idx], adc_data.cnt2send);
             idx = 0;
             uart_state = UART_STATE_SEND_DATA_CRC;
         }

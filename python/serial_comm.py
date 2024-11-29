@@ -24,11 +24,11 @@ cmd_send_res = bytearray('cmd5', 'utf-8')
 cmd_start_conv = bytearray('cmd7', 'utf-8')
 cmd_send_sg = bytearray('cmd8', 'utf-8')
 cmd_send_fft = bytearray('cmd9', 'utf-8')
-cmd_ping = bytearray('ping', 'utf-8')
+cmd_ping = bytearray('pings', 'utf-8')
 
 ser = serial.Serial()
 ser.baudrate= 256000
-ser.port = 'COM2'
+ser.port = 'COM3'
 # ser.timeout = 20
 ser.open()
 
@@ -36,7 +36,7 @@ def ask(ser, cmd, arg):
     cmd.extend(arg.to_bytes(4,'little'))
     cmd.extend(crc16(cmd).to_bytes(2,'little'))
     # ser.write(cmd)
-    ser.write(cmd[0:9])
+    ser.write(cmd)
     print(' '.join(format(x, '02x') for x in cmd))
     ans = ser.read(10)
     cmd, err, crc = struct.unpack('4sIH', ans)
@@ -51,9 +51,8 @@ def plot(sg):
     # plt.show()
 
 
+# ask(ser, cmd_pwr_on_off[::-1], 1)
 ask(ser, cmd_ping[::-1], 0)
-
-# ask(ser, cmd_pwr_on_off[::-1], arg_on)
 
 # ask(ser, cmd_set_sg_len[::-1], int(sg_len))
 
@@ -62,7 +61,8 @@ ask(ser, cmd_ping[::-1], 0)
 # cmd, v_max, crc = struct.unpack('4sfH', resp)
 # print(f"cmd: {cmd[::-1]}, v_max: {v_max}, crc: 0x{crc:04X}")
 
-# ask(ser, cmd_send_sg[::-1], 0)
+# ask(ser, cmd_send_sg[::-1], 1024)
+# ask(ser, cmd_send_fft[::-1], 1024)
 # pack = bytearray(sz_cmd + 2*sz_sg - 1)
 # pack[0:(sz_cmd-1)]= ser.read(sz_cmd)
 # rng = 2*int(sz_sg/8000)

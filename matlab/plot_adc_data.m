@@ -33,8 +33,8 @@ vref = 3.3;
 f = Fs/sg_len*(0:(sg_len/2-1));
 cfg = struct('poly',0x8005,'init',0xffff,'refin',1,'refout',1,'xorout',0);
 %%
-send_cmd(s, cmd.ping+"s", arg.on, cfg)
-pack = read(s, 10, c'char');
+send_cmd(s, cmd.ping, arg.on, cfg)
+pack = read(s, 10, 'char');
 print_ans(pack)
 %%
 send_cmd(s, cmd.pwr_on_off, arg.on, cfg)
@@ -50,8 +50,13 @@ pack = read(s, 10, 'char');
 print_ans(pack)
 %%
 send_cmd(s, cmd.exti_on_off, arg.on, cfg);
+fprintf("err ")
 pack = read(s, 10, 'char');
 print_ans(pack)
+fprintf("pulse ")
+pack = read(s, 10, 'char');
+print_ans(pack)
+fprintf("res ")
 pack = read(s, 10, 'char');
 fprintf("cmd:%s, arg:%.4f\n\n", reverse(pack(1:4)),typecast(uint8(pack(5:8)),'single'))
 crc2check = crc16(pack, cfg);

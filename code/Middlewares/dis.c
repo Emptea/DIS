@@ -39,7 +39,7 @@ enum {
     ERR_NONE = 0,
     ERR_CMD = 1,
     ERR_ARG = 2,
-    ERR_NO_RES = 3,
+    ERR_NO_RSLT = 3,
     ERR_ARG_TIM = 0x00000102,
     ERR_ARG_SG = 0x00000202,
     ERR_ARG_FFT = 0x00000302,
@@ -85,7 +85,7 @@ ALIGN_32BYTES __attribute__((section(".dma.rx_buf"))) union {
     uint8_t bytes[CMD_SZ + ARG_SZ + 2];
 } rx_buf;
 
-ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct {
+ALIGN_32BYTES __attribute__((section(".dma.tx_buf"))) struct tx_buf {
     uint32_t cmd;
     uint32_t err;
     uint16_t header_crc;
@@ -138,7 +138,7 @@ static volatile enum {
 inline static uint32_t res_check()
 {
     if (res_state != RES_RDY) {
-        return ERR_NO_RES;
+        return ERR_NO_RSLT;
     } else {
         return ERR_NONE;
     }
@@ -216,7 +216,18 @@ void dis_work()
 // move into different file?
 inline static uint32_t check_len_boundaries(uint32_t arg, uint32_t min, uint32_t max)
 {
-    return ERR_ARG * (arg < min || arg > max);
+    return (arg < min || arg > max);
+}
+
+inline static uint32_t err_sg_fft_work(uint32_t err_arg)
+{
+    uint32_t err = check_len_boundaries(rx_buf.arg, SG_LEN_MIN, adc_data.len);
+    if (err) {
+        return err_arg;
+    } else if (res_state != RES_RDY) {
+        return ERR_NO_RSLT;
+    }
+    return err;
 }
 
 inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32_t max)
@@ -228,9 +239,9 @@ inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32
     return err;
 }
 
-inline static uint32_t sg_send()
+inline static uint32_t sg_send(struct tx_buf *buf)
 {
-    uint32_t err = check_len_boundaries(rx_buf.arg, SG_LEN_MIN, adc_data.len);
+    uint32_t err = err_sg_fft_work(ERR_ARG_SG);
     if (!err) {
         uart_state = UART_STATE_SEND_SG;
         adc_data.cnt2send = rx_buf.arg * 2;
@@ -242,7 +253,7 @@ inline static uint32_t sg_send()
 
 inline static uint32_t fft_send(struct tx_buf *buf)
 {
-    uint32_t err = check_len_boundaries(rx_buf.arg, FFT_LEN_MIN, fft.len) && res_check();
+    uint32_t err = err_sg_fft_work(ERR_ARG_FFT);
     if (!err) {
         uart_state = UART_STATE_SEND_FFT;
         fft.cnt2send = rx_buf.arg * 8;

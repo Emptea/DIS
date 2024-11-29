@@ -314,7 +314,7 @@ void cmd_work()
     LL_CRC_SetInitialData(CRC, 0xFFFF);
     if (uart_state == UART_STATE_RCV) {
         LL_USART_EnableRxTimeout(USART1);
-        uart_dma_rcv(&rx_buf, HEADER_SZ);
+        uart_dma_recv(&rx_buf, HEADER_SZ);
     }
 }
 
@@ -366,18 +366,11 @@ void uart_send_dma_callback()
     }
 }
 
-inline static void check_pack()
+static void uart_state_work(uint32_t state)
 {
-    uart_state = UART_STATE_ERROR * uart_integrity_check(HEADER_SZ);
-    crc_check();
-}
-
-static void uart_state_work()
-{
-    switch (uart_state) {
+    switch (state) {
     case UART_STATE_ERROR: {
-        LL_USART_EnableRxTimeout(USART1);
-        uart_dma_rcv(&rx_buf, HEADER_SZ);
+        uart_dma_recv(&rx_buf, HEADER_SZ);
         uart_state = UART_STATE_RCV;
         break;
     }
@@ -391,10 +384,15 @@ static void uart_state_work()
     }
 }
 
+void uart_recv_timeout_callback()
+{
+    uart_dma_recv(&rx_buf, HEADER_SZ);
+}
+
 void uart_recv_dma_callback()
 {
-    check_pack();
-    uart_state_work();
+    crc_check();
+    uart_state_work(uart_state);
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
 }
 

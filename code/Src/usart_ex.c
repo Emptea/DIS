@@ -72,6 +72,14 @@ void uart_dma_send(void *buf, uint32_t size)
     LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_2);
 }
 
+void uart_dma_recv(void *buf, uint32_t size)
+{
+    LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+    LL_DMA_SetDataLength(DMA1, LL_DMA_STREAM_1, size);
+    LL_DMA_SetMemoryAddress(DMA1, LL_DMA_STREAM_1, (uint32_t)buf);
+    LL_DMA_EnableStream(DMA1, LL_DMA_STREAM_1);
+}
+
 __WEAK void uart_send_dma_callback(void)
 {
 }
@@ -80,20 +88,11 @@ __WEAK void uart_recv_dma_callback(void)
 {
 }
 
-void uart_dma_rx_handler()
+__WEAK void uart_recv_timeout_callback(void)
 {
-    if (LL_DMA_IsActiveFlag_TC1(DMA1)) {
-        LL_USART_DisableRxTimeout(USART1);
-        LL_DMA_ClearFlag_TC1(DMA1);
-        uart_recv_dma_callback();
-    }
-
-    if (LL_DMA_IsActiveFlag_TE1(DMA1)) {
-        LL_DMA_ClearFlag_TE1(DMA1);
-    }
 }
 
-void uart_dma_tx_handler()
+void DMA1_Stream2_IRQHandler(void)
 {
     if (LL_DMA_IsActiveFlag_TC2(DMA1)) {
         LL_DMA_ClearFlag_TC2(DMA1);
@@ -105,15 +104,24 @@ void uart_dma_tx_handler()
     }
 }
 
+static volatile uint32_t uart_is_rto = 0;
 
 void DMA1_Stream1_IRQHandler(void)
 {
-    uart_dma_rx_handler();
-}
+    if (LL_DMA_IsActiveFlag_TC1(DMA1)) {
+        LL_DMA_ClearFlag_TC1(DMA1);
+        if (uart_is_rto) {
+            uart_is_rto = 0;
+            // uint32_t n_rem = LL_DMA_GetDataLength(DMA1, LL_DMA_STREAM_1);
+            uart_recv_timeout_callback();
+        } else {
+            uart_recv_dma_callback();
+        }
+    }
 
-void DMA1_Stream2_IRQHandler(void)
-{
-    uart_dma_tx_handler();
+    if (LL_DMA_IsActiveFlag_TE1(DMA1)) {
+        LL_DMA_ClearFlag_TE1(DMA1);
+    }
 }
 
 void USART1_IRQHandler(void)
@@ -122,5 +130,6 @@ void USART1_IRQHandler(void)
     if (LL_USART_IsActiveFlag_RTO(USART1) && LL_USART_IsEnabledIT_RTO(USART1)) {
         LL_USART_ClearFlag_RTO(USART1);
         LL_DMA_DisableStream(DMA1, LL_DMA_STREAM_1);
+        uart_is_rto = 1;
     }
 }

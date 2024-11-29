@@ -3,7 +3,8 @@
         {
             "name": "gcc-arm",
             "includePath": [
-                "${workspaceFolder}/code/**"
+                "${workspaceFolder}/code/**",
+                "${env:CMSIS_DSP_PATH}/Include",
             ],
             "defines": [
                 "DEBUG",

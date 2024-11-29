@@ -152,9 +152,9 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>118</LineNumber>
+          <LineNumber>103</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134218996</Address>
+          <Address>134219020</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -163,28 +163,12 @@
           <BreakIfRCount>1</BreakIfRCount>
           <Filename>..\code\Src\usart_ex.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Src/usart_ex.c\118</Expression>
+          <Expression>\\dis\../code/Src/usart_ex.c\103</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>28</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134251908</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\code\Src\usart_ex.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\dis\../code/Src/usart_ex.c\28</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>119</LineNumber>
+          <LineNumber>127</LineNumber>
           <EnabledFlag>1</EnabledFlag>
           <Address>0</Address>
           <ByteObject>0</ByteObject>

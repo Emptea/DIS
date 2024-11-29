@@ -298,10 +298,10 @@ void cmd_work()
         adc_start_conv(&adc_data, adc_data.len);
     } break;
     case CMD_SEND_FFT: {
-        tx_buf.err = fft_send(&cmd);
+        err = fft_send(&cmd);
     } break;
     case CMD_SEND_SG: {
-        tx_buf.err = sg_send(&cmd);
+        err = sg_send(&cmd);
     } break;
     case CMD_PING: {
 

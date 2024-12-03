@@ -31,7 +31,6 @@
 #define SG_CHUNK_BYTE_LEN_MAX UINT16_MAX
 
 #define FS                    2000000.0f
-#define F_STEP                (FS / ((float32_t)SG_LEN))
 #define F0                    56710000000.0f
 #define LAMBDA                (299792458.0f / F0)
 
@@ -179,7 +178,7 @@ static void dopp_calc()
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
     arm_max_f32(fft_mag_sq, halflen, &fft_max, &i_max);
-    rslt_buf.v_max = F_STEP * ((float32_t)i_max) * LAMBDA / 2;
+    rslt_buf.v_max =  (FS / fft.len) * ((float32_t)i_max) * LAMBDA / 2;
 }
 
 static void crc_check()

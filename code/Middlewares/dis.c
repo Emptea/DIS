@@ -221,9 +221,9 @@ inline static uint32_t check_len_boundaries(uint32_t arg, uint32_t min, uint32_t
     return (arg < min || arg > max);
 }
 
-inline static uint32_t err_sg_fft_work(uint32_t err_arg)
+inline static uint32_t err_sg_fft_work(uint32_t err_arg, uint32_t min, uint32_t max)
 {
-    uint32_t err = check_len_boundaries(rx_buf.arg, SG_LEN_MIN, adc_data.len);
+    uint32_t err = check_len_boundaries(rx_buf.arg, min, max);
     if (err) {
         return err_arg;
     } else if (res_state != RES_RDY) {
@@ -243,7 +243,7 @@ inline static uint32_t set_len(uint32_t *len, uint32_t arg, uint32_t min, uint32
 
 inline static uint32_t sg_send(uint32_t *cmd)
 {
-    uint32_t err = err_sg_fft_work(ERR_ARG_SG);
+    uint32_t err = err_sg_fft_work(ERR_ARG_SG, SG_LEN_MIN, adc_data.len);
     if (!err) {
         uart_state = UART_STATE_SEND_SG;
         adc_data.cnt2send = rx_buf.arg * 2;
@@ -255,7 +255,7 @@ inline static uint32_t sg_send(uint32_t *cmd)
 
 inline static uint32_t fft_send(uint32_t *cmd)
 {
-    uint32_t err = err_sg_fft_work(ERR_ARG_FFT);
+    uint32_t err = err_sg_fft_work(ERR_ARG_FFT, FFT_LEN_MIN, fft.len);
     if (!err) {
         uart_state = UART_STATE_SEND_FFT;
         fft.cnt2send = rx_buf.arg * 8;

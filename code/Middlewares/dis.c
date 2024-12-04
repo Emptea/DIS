@@ -58,7 +58,7 @@ enum cmd {
     CMD_SET_TIM = cmd2uint('c', 'm', 'd', '2'),
     CMD_SET_SG_LEN = cmd2uint('c', 'm', 'd', '3'),
     CMD_SET_FFT_LEN = cmd2uint('c', 'm', 'd', '4'),
-    CMD_SEND_RES = cmd2uint('c', 'm', 'd', '5'),
+    CMD_SEND_RSLT = cmd2uint('c', 'm', 'd', '5'),
     CMD_START_CONV = cmd2uint('c', 'm', 'd', '7'),
     CMD_SEND_SG = cmd2uint('c', 'm', 'd', '8'),
     CMD_SEND_FFT = cmd2uint('c', 'm', 'd', '9'),
@@ -286,7 +286,7 @@ void cmd_work()
     case CMD_SET_FFT_LEN: {
         err = set_len(&fft.len, rx_buf.arg, FFT_LEN_MIN, FFT_LEN_MAX);
     } break;
-    case CMD_SEND_RES: {
+    case CMD_SEND_RSLT: {
         err = res_check();
         if (!err) {
             res_send();

@@ -51,6 +51,12 @@ enum res_state {
 };
 static enum res_state res_state = RES_NONE;
 
+enum pulse_state {
+    PULSE_NONE = 0,
+    PULSE_RDY = 1,
+};
+static enum pulse_state pulse_state =   PULSE_NONE;
+
 enum cmd {
     CMD_PING = cmd2uint('p', 'i', 'n', 'g'),
     CMD_PWR_ON_OFF = cmd2uint('c', 'm', 'd', '0'),
@@ -68,7 +74,6 @@ static enum cmd cmd = CMD_PING;
 enum header {
     HEADER_RSLT = cmd2uint('r', 's', 'l', 't'),
     HEADER_PULSE = cmd2uint('p', 'u', 'l', 's'),
-    HEADER_CONV = cmd2uint('c', 'o', 'n', 'v'),
     HEADER_SG = cmd2uint('p', 's', 'i', 'g'),
     HEADER_FFT = cmd2uint('p', 'f', 'f', 't'),
     HEADER_ERR = cmd2uint('e', 'r', 'n', 'o'),
@@ -179,7 +184,7 @@ static void dopp_calc()
     float32_t fft_max = 0.0f;
     uint32_t i_max = 0;
     arm_max_f32(fft_mag_sq, halflen, &fft_max, &i_max);
-    rslt_buf.v_max =  (FS / fft.len) * ((float32_t)i_max) * LAMBDA / 2;
+    rslt_buf.v_max = (FS / fft.len) * ((float32_t)i_max) * LAMBDA / 2;
 }
 
 static void crc_check()
@@ -202,21 +207,25 @@ void dis_init()
 
     adc_calibration();
     adc_en();
+    tim_dly_set(0);
+    tim_dly_reset();
 
-    LL_EXTI_EnableRisingTrig_0_31(LL_EXTI_LINE_0);
+    LL_EXTI_EnableFallingTrig_0_31(LL_EXTI_LINE_0);
 }
 
 void dis_work()
 {
+    if (pulse_state || tim_dly_done()) {
+        dis_send_hdr(HEADER_PULSE, ERR_NONE);
+        tim_dly_reset();
+        pulse_state = PULSE_NONE;
+    }
+    
     if (adc_is_rdy()) {
         dopp_calc();
         adc_to_idle();
         res_state = RES_RDY;
         res_send();
-    }
-    if (tim_dly_done()){
-        dis_send_hdr(HEADER_CONV,ERR_NONE);
-        tim_dly_reset();
     }
 }
 
@@ -308,7 +317,6 @@ void cmd_work()
         err = sg_send(&cmd);
     } break;
     case CMD_PING: {
-
     } break;
     default: {
         err = ERR_CMD;
@@ -402,8 +410,7 @@ void EXTI0_IRQHandler(void)
 {
     if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET && LL_EXTI_IsEnabledIT_0_31(LL_EXTI_LINE_0)) {
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
-        dis_send_hdr(HEADER_PULSE, ERR_NONE);
-        adc_start_conv(&adc_data, adc_data.len);
+        pulse_state = adc_start_conv(&adc_data, adc_data.len);
         LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }
 }

@@ -17,4 +17,9 @@ inline static void tim_dly_reset()
 {
     return LL_TIM_ClearFlag_UPDATE(TIM1);
 }
+
+inline static uint32_t tim_dly_get()
+{
+    return LL_TIM_GetAutoReload(TIM1);
+}
 #endif

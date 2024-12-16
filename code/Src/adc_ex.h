@@ -11,7 +11,7 @@ void adc_dma_config(void *buf, uint32_t size);
 void adc_dma_start(void *buf, uint32_t size);
 void adc_dma_callback();
 
-void adc_start_conv(void *buf, uint32_t len);
+uint32_t adc_start_conv(void *buf, uint32_t len);
 uint32_t adc_is_rdy();
 void adc_to_idle();
 #endif

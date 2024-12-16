@@ -56,11 +56,17 @@ void adc_dma_config(void *buf, uint32_t len)
     LL_DMA_EnableIT_TC(DMA1, LL_DMA_STREAM_0);
 }
 
-void adc_start_conv(void *buf, uint32_t len)
+uint32_t adc_start_conv(void *buf, uint32_t len)
 {
     adc_state = ADC_STATE_CONV;
     adc_dma_start(buf, len);
-    tim_dly_on();
+    if (!tim_dly_get()) {
+        tim_adc_on();
+        return 1;
+    } else {
+        tim_dly_on();
+    }
+		return 0;
 }
 
 uint32_t adc_is_rdy()

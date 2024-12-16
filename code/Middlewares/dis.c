@@ -209,11 +209,14 @@ void dis_init()
 void dis_work()
 {
     if (adc_is_rdy()) {
-        dis_send_hdr(HEADER_CONV,ERR_NONE);
         dopp_calc();
         adc_to_idle();
         res_state = RES_RDY;
         res_send();
+    }
+    if (tim_dly_done()){
+        dis_send_hdr(HEADER_CONV,ERR_NONE);
+        tim_dly_reset();
     }
 }
 

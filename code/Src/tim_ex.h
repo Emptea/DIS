@@ -7,4 +7,14 @@ void tim_adc_on();
 void tim_adc_off();
 void tim_dly_on();
 uint32_t tim_dly_set(uint32_t ms);
+
+inline uint32_t tim_dly_done()
+{
+    return LL_TIM_IsActiveFlag_UPDATE(TIM1);
+}
+
+inline void tim_dly_reset()
+{
+    return LL_TIM_ClearFlag_UPDATE(TIM1);
+}
 #endif

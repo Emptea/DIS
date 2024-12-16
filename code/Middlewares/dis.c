@@ -111,7 +111,7 @@ ALIGN_32BYTES __attribute__((section(".dma.adc_data"))) struct {
 
     uint32_t len;
     uint32_t cnt2send;
-} adc_data = {.sg = {0}, .len = SG_LEN_MAX};
+} adc_data = {.sg = {0}, .len = (SG_LEN_MAX/2)};
 
 static struct {
     union {
@@ -121,7 +121,7 @@ static struct {
 
     uint32_t len;
     uint32_t cnt2send;
-} fft = {.x = {0}, .len = FFT_LEN_MAX};
+} fft = {.x = {0}, .len = (FFT_LEN_MAX/2)};
 
 ALIGN_32BYTES __attribute__((section(".res"))) static float32_t fft_mag_sq[FFT_LEN_MAX / 2] = {0};
 
@@ -411,6 +411,5 @@ void EXTI0_IRQHandler(void)
     if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_0) != RESET && LL_EXTI_IsEnabledIT_0_31(LL_EXTI_LINE_0)) {
         LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_0);
         pulse_state = adc_start_conv(&adc_data, adc_data.len);
-        LL_EXTI_DisableIT_0_31(LL_EXTI_LINE_0);
     }
 }

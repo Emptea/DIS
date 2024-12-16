@@ -68,6 +68,7 @@ static enum cmd cmd = CMD_PING;
 enum header {
     HEADER_RSLT = cmd2uint('r', 's', 'l', 't'),
     HEADER_PULSE = cmd2uint('p', 'u', 'l', 's'),
+    HEADER_CONV = cmd2uint('c', 'o', 'n', 'v'),
     HEADER_SG = cmd2uint('p', 's', 'i', 'g'),
     HEADER_FFT = cmd2uint('p', 'f', 'f', 't'),
     HEADER_ERR = cmd2uint('e', 'r', 'n', 'o'),
@@ -208,6 +209,7 @@ void dis_init()
 void dis_work()
 {
     if (adc_is_rdy()) {
+        dis_send_hdr(HEADER_CONV,ERR_NONE);
         dopp_calc();
         adc_to_idle();
         res_state = RES_RDY;

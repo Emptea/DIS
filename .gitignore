@@ -9,3 +9,4 @@ build
 /python_test/__pycache__/
 matlab/*.fig
 matlab/*.asv
+matlab/*.mat

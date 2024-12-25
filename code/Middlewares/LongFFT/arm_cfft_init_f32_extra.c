@@ -65,20 +65,6 @@ arm_status arm_cfft_radix4by2_rearrange_twiddles_f32(arm_cfft_instance_f32_extra
         switch (S->fftLen >> (twidCoefModifier - 1)) {  
 
 #if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) \
-            || defined(ARM_TABLE_TWIDDLECOEF_F32_65536)                                                                                                
-        case 65536U:                                                                                
-            S->rearranged_twiddle_tab_stride1_arr = rearranged_twiddle_tab_stride1_arr_65536_f32;
-            S->rearranged_twiddle_stride1  =  rearranged_twiddle_stride1_65536_f32;     
-
-            S->rearranged_twiddle_tab_stride2_arr = rearranged_twiddle_tab_stride2_arr_65536_f32;
-            S->rearranged_twiddle_stride2  =  rearranged_twiddle_stride2_65536_f32;    
-
-            S->rearranged_twiddle_tab_stride3_arr = rearranged_twiddle_tab_stride3_arr_65536_f32;
-            S->rearranged_twiddle_stride3  =  rearranged_twiddle_stride3_65536_f32;                                                     
-            break; 
-#endif
-
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) \
             || defined(ARM_TABLE_TWIDDLECOEF_F32_16384)                                                                                                
         case 16384U:                                                                                
             S->rearranged_twiddle_tab_stride1_arr = rearranged_twiddle_tab_stride1_arr_16384_f32;
@@ -120,17 +106,6 @@ arm_status arm_cfft_init_f32_extra(
                                                                                 
         /*  Initializations of Instance structure depending on the FFT length */
         switch (S->fftLen) {   
-                                                 
-            /*  Initializations of structure parameters for 65536 point FFT */   
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_BITREVIDX_FXT_65536) && defined(ARM_TABLE_TWIDDLECOEF_F32_65536))                     
-        case 65536U:  
-            /*  Initialise the bit reversal table modifier */                   
-            S->bitRevLength = ARMBITREVINDEXTABLE_FIXED_65536_TABLE_LENGTH_EXTRA;      
-            S->pBitRevTable = (uint16_t *)armBitRevIndexTable_fixed_65536;   
-            S->pTwiddle = (float32_t *)twiddleCoefExtra_65536;       
-            status=arm_cfft_radix4by2_rearrange_twiddles_f32(S, 1);               
-            break;                                                              
-#endif 
                                                  
             /*  Initializations of structure parameters for 32768 point FFT */   
 #if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_BITREVIDX_FXT_32768) && defined(ARM_TABLE_TWIDDLECOEF_F32_32768))                     
@@ -191,14 +166,6 @@ arm_status arm_cfft_init_f32_extra(
 
         /*  Initializations of Instance structure depending on the FFT length */
         switch (S->fftLen) {
-
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_65536) && defined(ARM_TABLE_BITREVIDX_FLT_65536))
-            /*  Initializations of structure parameters for 65536 point FFT */
-        case 65536U:
-            /*  Initialise the bit reversal table modifier */
-            FFTINIT(f32,65536);
-            break;
-#endif
 
 #if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_32768) && defined(ARM_TABLE_BITREVIDX_FLT_32768))
             /*  Initializations of structure parameters for 32768 point FFT */

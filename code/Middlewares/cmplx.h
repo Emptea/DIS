@@ -30,9 +30,6 @@ inline static void cmplx_fft_calc(cmplx64_t *data, uint32_t len)
     case 32768: {
         arm_cfft_f32_extra(&arm_cfft_sR_f32_len32768_extra, (float32_t *)data, 0, 1);
     } break;
-    case 65536: {
-        arm_cfft_f32_extra(&arm_cfft_sR_f32_len65536_extra, (float32_t *)data, 0, 1);
-    } break;
     default:
         break;
     }

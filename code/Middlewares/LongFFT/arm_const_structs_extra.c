@@ -29,12 +29,4 @@ const arm_cfft_instance_f32_extra arm_cfft_sR_f32_len32768_extra = {
 #endif
 
 
-
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_65536) && defined(ARM_TABLE_BITREVIDX_FLT_65536))
-const arm_cfft_instance_f32_extra arm_cfft_sR_f32_len65536_extra = {
-  65536, twiddleCoefExtra_65536, armBitRevIndexTableExtra65536, ARMBITREVINDEXTABLE_65536_TABLE_LENGTH_EXTRA
-};
-#endif
-
-
 #endif /* !defined(ARM_MATH_MVEF) || defined(ARM_MATH_AUTOVECTORIZE) */

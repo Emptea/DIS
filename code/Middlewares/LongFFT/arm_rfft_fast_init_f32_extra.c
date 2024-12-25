@@ -99,36 +99,6 @@ static arm_status arm_rfft_32768_fast_init_f32( arm_rfft_fast_instance_f32_extra
 }
 #endif 
 
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_32768) && (defined(ARM_TABLE_BITREVIDX_FLT_32768) || defined(ARM_TABLE_BITREVIDX_FXT_32768)) && defined(ARM_TABLE_TWIDDLECOEF_RFFT_F32_65536))
-
-/**
-  @private
-  @brief         Initialization function for the 65536pt floating-point real FFT.
-  @param[in,out] S  points to an arm_rfft_fast_instance_f32_extra structure
-  @return        execution status
-                   - \ref ARM_MATH_SUCCESS        : Operation successful
-                   - \ref ARM_MATH_ARGUMENT_ERROR : an error is detected
- */
-
-static arm_status arm_rfft_65536_fast_init_f32( arm_rfft_fast_instance_f32_extra * S ) {
-
-  arm_status status;
-
-  if( !S ) return ARM_MATH_ARGUMENT_ERROR;
-
-  status=arm_cfft_init_f32_extra(&(S->Sint),32768);
-  if (status != ARM_MATH_SUCCESS)
-  {
-    return(status);
-  }
-
-  S->fftLenRFFT = 65536U;
-  S->pTwiddleRFFT    = (float32_t *) twiddleCoefExtra_rfft_65536;
-
-  return ARM_MATH_SUCCESS;
-}
-#endif 
-
 
 /**
   @brief         Initialization function for the floating-point real FFT.
@@ -140,7 +110,7 @@ static arm_status arm_rfft_65536_fast_init_f32( arm_rfft_fast_instance_f32_extra
 
   @par           Description
                    The parameter <code>fftLen</code> specifies the length of RFFT/CIFFT process.
-                   Supported FFT Lengths are 16384, 32768, 65536.
+                   Supported FFT Lengths are 16384, 32768.
   @par
                    This Function also initializes Twiddle factor table pointer and Bit reversal table pointer.
  */
@@ -154,12 +124,6 @@ arm_status arm_rfft_fast_init_f32_extra(
 
   switch (fftLen)
   {
-
-#if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_32768) && (defined(ARM_TABLE_BITREVIDX_FLT_32768) || defined(ARM_TABLE_BITREVIDX_FXT_32768)) && defined(ARM_TABLE_TWIDDLECOEF_RFFT_F32_65536))
-  case 65536U:
-    fptr = arm_rfft_65536_fast_init_f32;
-    break;
-#endif
 
 #if !defined(ARM_DSP_CONFIG_TABLES) || defined(ARM_ALL_FFT_TABLES) || (defined(ARM_TABLE_TWIDDLECOEF_F32_16384) && (defined(ARM_TABLE_BITREVIDX_FLT_16384) || defined(ARM_TABLE_BITREVIDX_FXT_16384)) && defined(ARM_TABLE_TWIDDLECOEF_RFFT_F32_32768))
   case 32768U:
